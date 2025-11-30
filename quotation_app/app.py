@@ -637,12 +637,14 @@ def offer_pdf(offer_id):
     header_file.write(header_html.encode("utf-8"))
     header_file.flush()
     header_path = header_file.name
+    header_uri = Path(header_path).as_uri()
     header_file.close()
 
     footer_file = tempfile.NamedTemporaryFile(delete=False, suffix=".html")
     footer_file.write(footer_html.encode("utf-8"))
     footer_file.flush()
     footer_path = footer_file.name
+    footer_uri = Path(footer_path).as_uri()
     footer_file.close()
 
     options = {
@@ -652,12 +654,13 @@ def offer_pdf(offer_id):
         "margin-left": "20mm",
         "margin-right": "10mm",
         "encoding": "UTF-8",
-        "header-html": header_path,
+
+        # use file:// URIs instead of plain paths (Linux is picky here)
+        "header-html": header_uri,
         "header-spacing": "5",
 
-        # 👇 use HTML footer instead of text footer
-        "footer-html": footer_path,
-        "footer-spacing": "5",  # mm between content and footer block
+        "footer-html": footer_uri,
+        "footer-spacing": "5",
 
         "enable-local-file-access": "",
         "load-error-handling": "ignore",
