@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 import sqlite3
 import os
 import sys
@@ -178,6 +178,10 @@ def save_product_image(file_storage, product_name):
 @app.route("/")
 def index():
     return redirect(url_for("list_products"))
+
+@app.route("/product-image/<path:filename>")
+def product_image(filename):
+    return send_from_directory(IMAGE_DIR, filename)
 
 @app.context_processor
 def inject_helpers():
