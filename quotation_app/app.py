@@ -27,12 +27,16 @@ APP_ASSETS_DIR = os.path.join(BASE_DIR, "app_assets")
 if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
-# PDF configuration - uses env var for portability (Windows, Docker, Linux)
-# Try env var first, fall back to default Windows path
-WKHTMLTOPDF_PATH = os.getenv(
-    "WKHTMLTOPDF_PATH",
-    r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
-)
+# --- PDF / wkhtmltopdf configuration ---------------------------------
+
+# Decide default path based on OS
+if os.name == "nt":  # Windows
+    default_wkhtml = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
+else:                # Linux (and others – you can refine later if needed)
+    default_wkhtml = "/usr/bin/wkhtmltopdf"
+
+# Allow override via environment variable, but fall back to OS-specific default
+WKHTMLTOPDF_PATH = os.getenv("WKHTMLTOPDF_PATH", default_wkhtml)
 
 if os.path.isfile(WKHTMLTOPDF_PATH):
     PDF_CONFIG = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
