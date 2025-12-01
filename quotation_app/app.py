@@ -6,6 +6,7 @@ import io
 import pdfkit
 import requests
 import subprocess
+from weasyprint import HTML, CSS
 from datetime import date
 from pathlib import Path
 
@@ -574,11 +575,11 @@ def view_offer(offer_id):
     conn.close()
     return render_template("offer_view.html", offer=offer, items=items)
 
+import io
+from flask import send_file, request
+
 @app.route("/offers/<int:offer_id>/pdf")
 def offer_pdf(offer_id):
-    if PDF_CONFIG is None:
-        return "PDF export is not configured (WKHTMLTOPDF_PATH not set or invalid).", 500
-
     conn = get_db()
     cur = conn.cursor()
 
@@ -599,101 +600,22 @@ def offer_pdf(offer_id):
     items = cur.fetchall()
     conn.close()
 
-    # Build list of dicts with file URIs for product images
-    items_for_pdf = []
-    for row in items:
-        d = dict(row)
-        photo_name = d.get("item_photo_path")
-        if photo_name:
-            full_path = os.path.join(IMAGE_DIR, photo_name)
-            d["item_photo_uri"] = Path(full_path).as_uri()
-        else:
-            d["item_photo_uri"] = None
-        items_for_pdf.append(d)
-
-    # Logo URI
-    logo_path = os.path.join(APP_ASSETS_DIR, "logo_company.jpg")
-    logo_uri = Path(logo_path).as_uri()
-
-    # Render main body
-    main_html = render_template(
+    # Render the same HTML you use now for PDF (pdf_offer.html)
+    # We pass pdf_mode=True if you use that in the template
+    html_string = render_template(
         "pdf_offer.html",
         offer=offer,
-        items=items_for_pdf,
+        items=items,
         pdf_mode=True
     )
 
-    # Render header 
-    header_html = render_template(
-        "pdf_header.html",
-        offer=offer,
-        pdf_mode=True,
-        logo_uri=logo_uri
+    # Build absolute path for CSS
+    pdf_css_path = os.path.join(BASE_DIR, "static", "css", "pdf.css")
+
+    # Generate PDF bytes with WeasyPrint
+    pdf_bytes = HTML(string=html_string, base_url=request.host_url).write_pdf(
+        stylesheets=[CSS(filename=pdf_css_path)]
     )
-    # Render footer
-    footer_html = render_template("pdf_footer.html", offer=offer)
-    import tempfile
-
-    header_file = tempfile.NamedTemporaryFile(delete=False, suffix=".html")
-    header_file.write(header_html.encode("utf-8"))
-    header_file.flush()
-    header_path = header_file.name
-    header_uri = Path(header_path).as_uri()
-    header_file.close()
-
-    footer_file = tempfile.NamedTemporaryFile(delete=False, suffix=".html")
-    footer_file.write(footer_html.encode("utf-8"))
-    footer_file.flush()
-    footer_path = footer_file.name
-    footer_uri = Path(footer_path).as_uri()
-    footer_file.close()
-
-    options = {
-        "page-size": "A4",
-        "margin-top": "30mm",
-        "margin-bottom": "25mm",
-        "margin-left": "20mm",
-        "margin-right": "10mm",
-        "encoding": "UTF-8",
-
-        # use file:// URIs instead of plain paths (Linux is picky here)
-        #"header-html": header_uri,
-        "header-spacing": "5",
-        "header-center": "TEST HEADER",
-
-        #"footer-html": footer_uri,
-        "footer-spacing": "5",
-        "footer-center": "TEST FOOTER [page] / [topage]",
-
-        "enable-local-file-access": "",
-        "load-error-handling": "ignore",
-        "load-media-error-handling": "ignore",
-    }
-
-
-    try:
-        pdf_bytes = pdfkit.from_string(
-            main_html,
-            False,
-            configuration=PDF_CONFIG,
-            options=options,
-        )
-    except OSError as e:
-        # This catches wkhtmltopdf errors that pdfkit wraps
-        return f"wkhtmltopdf error: {e}", 500        
-    finally:
-        try:
-            os.unlink(header_path)
-        except OSError:
-            pass
-        try:
-            os.unlink(footer_path)
-        except OSError:
-            pass
-
-    filename = f"Ponuda_{offer['offer_number'] or offer['id']}.pdf"
-
-    # ... after pdf_bytes = pdfkit.from_string(...)
 
     num = offer["offer_number"] or offer["id"]
     filename = f"Ponuda_{num}.pdf"

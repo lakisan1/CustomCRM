@@ -1,0 +1,41 @@
+/* static/css/pdf.css */
+
+@page {
+    size: A4;
+    margin: 20mm 10mm 25mm 20mm;
+
+    @top-center {
+        /* header text */
+        content: "MARINKOVIĆ-HOFMANN DOO – PONUDA";
+        font-size: 10pt;
+    }
+
+    @bottom-center {
+        /* footer text with page numbers */
+        content: "Strana " counter(page) " od " counter(pages);
+        font-size: 9pt;
+    }
+}
+
+/* Basic body styling */
+body {
+    font-family: Arial, sans-serif;
+    font-size: 11pt;
+}
+
+/* Your items table etc. can reuse existing styles or be duplicated here */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    font-size: 10pt;
+}
+
+/* Avoid breaking important blocks */
+.no-break {
+    page-break-inside: avoid;
+}

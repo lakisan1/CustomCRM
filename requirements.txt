@@ -2,3 +2,4 @@ flask
 pdfkit
 Pillow
 requests
+WeasyPrint
