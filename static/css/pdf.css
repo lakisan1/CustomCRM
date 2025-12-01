@@ -3,22 +3,25 @@
 @page {
     size: A4;
     /* a bit more room at the top for logo + header lines */
-    margin: 27mm 10mm 20mm 15mm;
+    margin: 30mm 10mm 20mm 15mm;
 
     /* Header: use the running .pdf-header block */
     @top-center {
         content: element(doc-header);
+        font-size: 9pt;  /* same as body */
     }
 
     /* Footer on EVERY page – text only, no HTML partial needed */
     @bottom-left {
         content: "TR: 220-21678-48   TR: 205-241423-21   PIB: SR 101030495   Matični broj: 07775911";
         font-size: 9pt;  /* same as body */
+        font-family: Arial, sans-serif;
     }
 
     @bottom-right {
         content: "Strana " counter(page) " od " counter(pages);
         font-size: 9pt;  /* same as body */
+        font-family: Arial, sans-serif;
     }
 }
 
