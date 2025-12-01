@@ -22,8 +22,9 @@
         white-space: pre;           /* respect \A line breaks */
         font-size: 8pt;
         font-family: Arial, sans-serif;
-        border-top: 0.5pt solid #000;
+        border-top: 3.0pt solid #000;
         padding-top: 2mm;
+        width: 20%;
     }
 
     /* CENTER: page X of Y */
@@ -31,8 +32,9 @@
         content: "Strana " counter(page) " od " counter(pages);
         font-size: 8pt;
         font-family: Arial, sans-serif;
-        border-top: 0.5pt solid #000;
+        border-top: 3.0pt solid #000;
         padding-top: 2mm;
+        width: 40%;
     }
 
     /* RIGHT: TR / PIB / Matični broj */
@@ -45,8 +47,9 @@
         font-size: 8pt;
         font-family: Arial, sans-serif;
         text-align: right;
-        border-top: 0.5pt solid #000;
+        border-top: 3.0pt solid #000;
         padding-top: 2mm;
+        width: 40%;
     }
 }
 
@@ -91,12 +94,12 @@ body {
 }
 
 /* Header/footer tables used inside body (if any) */
-/*.header-table,
-/*.footer-table {
-/*    width: 100%;
-/*    font-size: 9pt;
-/*    border-collapse: collapse;
-/*}
+.header-table,
+.footer-table {
+    width: 100%;
+    font-size: 9pt;
+    border-collapse: collapse;
+}
 
 /* Items (stavke ponude) */
 .items-table {
@@ -139,15 +142,15 @@ body {
 
 /* Column widths – adjust percentages if needed */
 .items-table .col-rb {
-    width: 6%;
+    width: 4%;
 }
 
 .items-table .col-photo {
-    width: 18%;
+    width: 15%;
 }
 
 .items-table .col-desc {
-    width: 46%;
+    width: 45%;
 }
 
 .items-table .col-qty {
@@ -155,11 +158,11 @@ body {
 }
 
 .items-table .col-unit {
-    width: 11%;
+    width: 13%;
 }
 
 .items-table .col-total {
-    width: 11%;
+    width: 15%;
 }
 
 /* Multiline product descriptions preserved */
