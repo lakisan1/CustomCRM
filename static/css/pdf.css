@@ -20,6 +20,7 @@
                  "e-mail: office@hofmann-srbija.com\A"
                  "web site: www.hofmann-srbija.rs\A"
                  " \A"
+                 " \A"
                  " ";
         white-space: pre;           /* respect \A line breaks */
         font-size: 8pt;
@@ -31,7 +32,12 @@
 
     /* CENTER: page X of Y */
     @bottom-center {
-        content: "Strana " counter(page) " od " counter(pages);
+        content: "Strana " counter(page) " od " counter(pages)
+                 " \A"
+                 " \A"
+                 " \A"
+                 " \A"
+                 " ";
         font-size: 8pt;
         font-family: Arial, sans-serif;
         border-top: 1.5pt solid #000;
@@ -44,7 +50,10 @@
         content: "TR: 220-21678-48\A"
                  "TR: 205-241423-21\A"
                  "PIB: SR 101030495\A"
-                 "Matični broj: 07775911";
+                 "Matični broj: 07775911\A"
+                 " \A"
+                 " \A"
+                 " ";
         white-space: pre;           /* respect \A line breaks */
         font-size: 8pt;
         font-family: Arial, sans-serif;
