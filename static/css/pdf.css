@@ -1,41 +1,81 @@
-/* static/css/pdf.css */
+/* === Page & running header/footer ======================= */
 
 @page {
     size: A4;
     margin: 20mm 10mm 25mm 20mm;
 
     @top-center {
-        /* header text */
-        content: "MARINKOVIĆ-HOFMANN DOO – PONUDA";
-        font-size: 10pt;
+        content: element(doc-header);
     }
 
     @bottom-center {
-        /* footer text with page numbers */
-        content: "Strana " counter(page) " od " counter(pages);
-        font-size: 9pt;
+        content: element(doc-footer);
     }
 }
 
-/* Basic body styling */
+/* The content for the header margin box */
+.pdf-header {
+    position: running(doc-header);
+}
+
+/* The content for the footer margin box */
+.pdf-footer {
+    position: running(doc-footer);
+    font-size: 9pt;
+}
+
+/* === Body & tables ====================================== */
+
 body {
     font-family: Arial, sans-serif;
-    font-size: 11pt;
+    font-size: 12px;
+    margin: 0;
+    padding: 0;
+    letter-spacing: 0.1em;  /* as you had before */
 }
 
-/* Your items table etc. can reuse existing styles or be duplicated here */
-table {
-    border-collapse: collapse;
+.page-content {
+    padding-top: 0;
+}
+
+.header-table,
+.footer-table {
     width: 100%;
+    font-size: 12px;
 }
 
-th, td {
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.items-table th,
+.items-table td {
     border: 1px solid #000;
     padding: 4px 6px;
-    font-size: 10pt;
+    font-size: 12px;
+    letter-spacing: 0.1em;
 }
 
-/* Avoid breaking important blocks */
-.no-break {
+.totals-table,
+.totals-table td {
+    border: none;
+}
+
+/* Keep multiline descriptions as before */
+.multiline {
+    white-space: pre-line;
+}
+
+/* Blocks you never want split between pages */
+.no-break-block {
+    page-break-inside: avoid;
+}
+
+.no-break-block table,
+.no-break-block tr,
+.no-break-block td,
+.no-break-block p {
     page-break-inside: avoid;
 }
