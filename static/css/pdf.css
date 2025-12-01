@@ -32,7 +32,7 @@
 
     /* CENTER: page X of Y */
     @bottom-center {
-        content: "Strana " counter(page) " od " counter(pages)
+        content: "Strana " counter(page) " od " counter(pages) \A
                  " \A"
                  " \A"
                  " \A"
