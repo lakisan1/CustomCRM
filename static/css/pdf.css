@@ -2,53 +2,53 @@
 
 @page {
     size: A4;
-    /* top margin larger for header, bottom margin for footer */
+    /* a bit more room at the top for logo + header lines */
     margin: 27mm 10mm 20mm 15mm;
 
+    /* Header: use the running .pdf-header block */
     @top-center {
         content: element(doc-header);
     }
 
-    /* Footer left: static company/bank info on EVERY page */
+    /* Footer on EVERY page – text only, no HTML partial needed */
     @bottom-left {
         content: "TR: 220-21678-48   TR: 205-241423-21   PIB: SR 101030495   Matični broj: 07775911";
-        font-size: 8pt;
+        font-size: 9pt;  /* same as body */
     }
 
-    /* Footer right: page X of Y on EVERY page */
     @bottom-right {
         content: "Strana " counter(page) " od " counter(pages);
-        font-size: 8pt;
+        font-size: 9pt;  /* same as body */
     }
 }
 
-/* PDF header still used as running element */
+/* Header content (logo + company info) */
 .pdf-header {
     position: running(doc-header);
-    font-size: 9pt;
+    font-size: 8pt;   /* smaller than before */
 }
 
-/* .pdf-footer can stay for HTML view only, or be minimal */
+/* We do NOT use the HTML footer in PDF anymore.
+   If offer_footer_inner.html has .pdf-footer, hide it in PDF output. */
 .pdf-footer {
-    font-size: 9pt;   /* used only in HTML view; margin boxes handle PDF */
+    display: none;
 }
-
 
 /* === Body & tables ====================================== */
 
 body {
     font-family: Arial, sans-serif;
-    font-size: 9pt;      /* roughly like 12px in the HTML version */
+    font-size: 9pt;      /* base font, matches footer now */
     margin: 0;
     padding: 0;
-    letter-spacing: normal;   /* override any letter-spacing from HTML */
+    letter-spacing: normal;
 }
 
 .page-content {
     padding-top: 0;
 }
 
-/* Header/footer tables inside the header/footer partials */
+/* Header/footer tables inside your header partial */
 .header-table,
 .footer-table {
     width: 100%;
@@ -64,7 +64,7 @@ body {
     page-break-inside: auto;
 }
 
-/* Make sure the header row behaves nicely on page breaks if you ever use <thead> */
+/* If you ever switch to <thead>, this helps repeat it on new pages */
 .items-table thead {
     display: table-header-group;
 }
@@ -76,12 +76,12 @@ body {
     font-size: 9pt;
 }
 
-/* Do NOT split a row between pages (WeasyPrint respects this in most cases) */
+/* Avoid splitting a row across pages as much as possible */
 .items-table tr {
     page-break-inside: avoid;
 }
 
-/* Totals block (no borders; looks like HTML version) */
+/* Totals block (no borders) */
 .totals-table,
 .totals-table td {
     border: none;
