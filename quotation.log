@@ -1,0 +1,296 @@
+ * Serving Flask app 'app'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.1.14:5001
+[33mPress CTRL+C to quit[0m
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 253-840-208
+192.168.1.10 - - [02/Dec/2025 16:37:23] "[32mGET / HTTP/1.1[0m" 302 -
+192.168.1.10 - - [02/Dec/2025 16:37:23] "GET /offers HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:37:23] "GET /static/css/main.css HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:37:26] "GET /offers/6/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:37:26] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:37:26] "GET /product-image/eae62c_6t.jpg HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:37:29] "[35m[1mPOST /offers/6/edit HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/quotation_app/app.py", line 462, in edit_offer
+    if new_prod_id:
+       ^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'new_prod_id' where it is not associated with a value
+192.168.1.10 - - [02/Dec/2025 16:37:29] "GET /offers/6/edit?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:37:29] "GET /offers/6/edit?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:37:29] "GET /offers/6/edit?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:37:50] "GET /offers/6/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:37:50] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:37:50] "[36mGET /product-image/eae62c_6t.jpg HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:37:56] "[35m[1mPOST /offers/6/edit HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/quotation_app/app.py", line 462, in edit_offer
+    if new_prod_id:
+       ^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'new_prod_id' where it is not associated with a value
+192.168.1.10 - - [02/Dec/2025 16:37:56] "[36mGET /offers/6/edit?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:37:56] "[36mGET /offers/6/edit?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:37:58] "GET /offers/6/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:38:03] "[35m[1mPOST /offers/6/edit HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/quotation_app/app.py", line 462, in edit_offer
+    if new_prod_id:
+       ^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'new_prod_id' where it is not associated with a value
+192.168.1.10 - - [02/Dec/2025 16:38:03] "[36mGET /offers/6/edit?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:38:03] "[36mGET /offers/6/edit?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:38:04] "GET /offers/6/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:38:07] "[35m[1mPOST /offers/6/edit HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/quotation_app/app.py", line 462, in edit_offer
+    if new_prod_id:
+       ^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'new_prod_id' where it is not associated with a value
+192.168.1.10 - - [02/Dec/2025 16:38:07] "[36mGET /offers/6/edit?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:38:07] "[36mGET /offers/6/edit?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:38:08] "GET /offers/6/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:38:17] "[32mPOST /offers/6/edit HTTP/1.1[0m" 302 -
+192.168.1.10 - - [02/Dec/2025 16:38:17] "GET /offers/6/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:38:17] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:38:17] "[36mGET /product-image/eae62c_6t.jpg HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:38:21] "GET /offers/new HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:38:21] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:38:25] "[32mPOST /offers/new HTTP/1.1[0m" 302 -
+192.168.1.10 - - [02/Dec/2025 16:38:25] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:38:25] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:38:29] "[32mPOST /offers/7/edit HTTP/1.1[0m" 302 -
+192.168.1.10 - - [02/Dec/2025 16:38:29] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:38:29] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:38:35] "[35m[1mPOST /offers/7/edit HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/quotation_app/app.py", line 462, in edit_offer
+    if new_prod_id:
+       ^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'new_prod_id' where it is not associated with a value
+192.168.1.10 - - [02/Dec/2025 16:38:35] "GET /offers/7/edit?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:38:35] "GET /offers/7/edit?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:38:35] "GET /offers/7/edit?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:38:40] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:40:31] "GET /offers HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:40:31] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:40:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+192.168.1.10 - - [02/Dec/2025 16:40:33] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:40:33] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:40:41] "GET /offers HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:40:41] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:40:42] "GET /offers/6/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 16:40:42] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 16:40:42] "[36mGET /product-image/eae62c_6t.jpg HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:34:46] "GET /offers HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:34:46] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:34:46] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+192.168.1.10 - - [02/Dec/2025 18:35:31] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:35:31] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:36:00] "[32mPOST /offers/7/edit HTTP/1.1[0m" 302 -
+192.168.1.10 - - [02/Dec/2025 18:36:00] "GET /offers/7/edit?product_id=8 HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:36:00] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:36:02] "[32mPOST /offers/7/edit?product_id=8 HTTP/1.1[0m" 302 -
+192.168.1.10 - - [02/Dec/2025 18:36:02] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:36:02] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:36:07] "[35m[1mPOST /offers/7/edit HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/quotation_app/app.py", line 462, in edit_offer
+    if new_prod_id:
+       ^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'new_prod_id' where it is not associated with a value
+192.168.1.10 - - [02/Dec/2025 18:36:07] "GET /offers/7/edit?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:36:07] "GET /offers/7/edit?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:36:07] "GET /offers/7/edit?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:36:10] "[35m[1mPOST /offers/7/edit HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/quotation_app/app.py", line 462, in edit_offer
+    if new_prod_id:
+       ^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'new_prod_id' where it is not associated with a value
+192.168.1.10 - - [02/Dec/2025 18:36:10] "[36mGET /offers/7/edit?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:36:10] "[36mGET /offers/7/edit?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:36:10] "[36mGET /offers/7/edit?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:36:15] "[35m[1mPOST /offers/7/edit HTTP/1.1[0m" 500 -
+Traceback (most recent call last):
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/venv/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/CustomCRM/quotation_app/app.py", line 462, in edit_offer
+    if new_prod_id:
+       ^^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'new_prod_id' where it is not associated with a value
+192.168.1.10 - - [02/Dec/2025 18:36:15] "[36mGET /offers/7/edit?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:36:15] "[36mGET /offers/7/edit?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:36:20] "GET /offers/7/edit?product_id=8 HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:36:20] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:36:27] "[32mPOST /offers/7/edit?product_id=8 HTTP/1.1[0m" 302 -
+192.168.1.10 - - [02/Dec/2025 18:36:27] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:36:27] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:36:32] "GET /offers HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:36:32] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+ * Detected change in '/opt/CustomCRM/quotation_app/app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 253-840-208
+192.168.1.10 - - [02/Dec/2025 18:52:51] "GET /offers HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:52:51] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:52:55] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:52:55] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:52:57] "[32mPOST /offers/7/edit HTTP/1.1[0m" 302 -
+192.168.1.10 - - [02/Dec/2025 18:52:57] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:52:57] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:53:02] "[32mPOST /offers/7/edit HTTP/1.1[0m" 302 -
+192.168.1.10 - - [02/Dec/2025 18:53:02] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:53:02] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:53:02] "[36mGET /product-image/eae62c_6t.jpg HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:53:13] "[32mPOST /offers/7/edit HTTP/1.1[0m" 302 -
+192.168.1.10 - - [02/Dec/2025 18:53:13] "GET /offers/7/edit HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:53:13] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:53:13] "[36mGET /product-image/eae62c_6t.jpg HTTP/1.1[0m" 304 -
+192.168.1.10 - - [02/Dec/2025 18:53:23] "GET /offers HTTP/1.1" 200 -
+192.168.1.10 - - [02/Dec/2025 18:53:23] "[36mGET /static/css/main.css HTTP/1.1[0m" 304 -
