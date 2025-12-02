@@ -449,22 +449,22 @@ def edit_offer(offer_id):
 
             conn.close()
 
-            elif action == "delete_item":
-                item_id = int(request.form.get("item_id"))
-                cur.execute(
-                    "DELETE FROM offer_items WHERE id = ? AND offer_id = ?;",
-                    (item_id, offer_id)
-                )
-                conn.commit()
-                recalc_totals(offer_id)
+        elif action == "delete_item":
+            item_id = int(request.form.get("item_id"))
+            cur.execute(
+                "DELETE FROM offer_items WHERE id = ? AND offer_id = ?;",
+                (item_id, offer_id)
+            )
+            conn.commit()
+            recalc_totals(offer_id)
 
-            # Redirect so that GET can preselect this product in the dropdown
-            if new_prod_id:
-                return redirect(url_for("edit_offer",
-                                        offer_id=offer_id,
-                                        product_id=new_prod_id))
-            else:
-                return redirect(url_for("edit_offer", offer_id=offer_id))
+        # Redirect so that GET can preselect this product in the dropdown
+        if new_prod_id:
+            return redirect(url_for("edit_offer",
+                                    offer_id=offer_id,
+                                    product_id=new_prod_id))
+        else:
+            return redirect(url_for("edit_offer", offer_id=offer_id))
 
     # GET or after POST: load items
     cur.execute("""
