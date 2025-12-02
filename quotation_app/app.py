@@ -363,14 +363,12 @@ def edit_offer(offer_id):
             if prod_row:
                 if not item_name:
                     item_name = prod_row["name"]
-                # If you want to use description from product by default:
                 if not item_description:
                     item_description = prod_row["description"] or ""
                 item_photo_path = prod_row["photo_path"] or None
 
                 # If unit price is not manually entered, use latest final price
                 if not unit_price_input:
-                    # latest price
                     cur.execute("""
                         SELECT final_price
                         FROM prices
@@ -415,7 +413,13 @@ def edit_offer(offer_id):
                 quantity, unit_price, line_net
             ))
             conn.commit()
+
+            # totals in DB
             recalc_totals(offer_id)
+
+            # IMPORTANT: redirect to GET so we reload fresh offer + items
+            conn.close()
+            return redirect(url_for("edit_offer", offer_id=offer_id))
 
         elif action == "create_temp_product":
             # Quick-create a minimal product with TEMP brand/category
@@ -444,6 +448,15 @@ def edit_offer(offer_id):
                     new_prod_id = cur.lastrowid
 
             conn.close()
+
+            elif action == "delete_item":
+                item_id = int(request.form.get("item_id"))
+                cur.execute(
+                    "DELETE FROM offer_items WHERE id = ? AND offer_id = ?;",
+                    (item_id, offer_id)
+                )
+                conn.commit()
+                recalc_totals(offer_id)
 
             # Redirect so that GET can preselect this product in the dropdown
             if new_prod_id:
