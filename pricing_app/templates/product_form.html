@@ -15,20 +15,32 @@
 {% endif %}
 <form method="post" enctype="multipart/form-data">
     <p>
-        <label>Name:<br>
-            <input type="text" name="name" required
-                   value="{% if product %}{{ product.name }}{% endif %}"
-                   required>
-        </label>
-    </p>
-    <p>
-        <label>Description:<br>
-            <textarea name="description" rows="8" cols="80">{% if product %}{{ product.description }}{% endif %}</textarea>
-        </label>
+        {% if brand_options %}
+            <label>Brand:<br>
+                <a href="{{ url_for('brands') }}">Dodaj novi brand</a>
+                <select name="brand">
+                    <option value="">-- choose brand --</option>
+                    {% for b in brand_options %}
+                        <option value="{{ b }}"
+                            {% if product and product.brand == b %}selected{% endif %}>
+                            {{ b }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </label>
+        {% else %}
+            <label>Brand:<br>
+                <input type="text" name="brand"
+                    value="{% if product %}{{ product.brand }}{% endif %}">
+                <br>
+                <small>No brands defined yet. Go to "Brands" first.</small>
+            </label>
+        {% endif %}
     </p>
     <p>
         {% if categories %}
             <label>Category:<br>
+                <a href="{{ url_for('category_defaults') }}">Dodaj novu ketgoriju</a> |
                 <select name="category" required>
                     <option value="">-- choose category --</option>
                     {% for cat in categories %}
@@ -49,26 +61,16 @@
         {% endif %}
     </p>
     <p>
-        {% if brand_options %}
-            <label>Brand:<br>
-                <select name="brand">
-                    <option value="">-- choose brand --</option>
-                    {% for b in brand_options %}
-                        <option value="{{ b }}"
-                            {% if product and product.brand == b %}selected{% endif %}>
-                            {{ b }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </label>
-        {% else %}
-            <label>Brand:<br>
-                <input type="text" name="brand"
-                    value="{% if product %}{{ product.brand }}{% endif %}">
-                <br>
-                <small>No brands defined yet. Go to "Brands" first.</small>
-            </label>
-        {% endif %}
+        <label>Name:<br>
+            <input type="text" name="name" required
+                   value="{% if product %}{{ product.name }}{% endif %}"
+                   required>
+        </label>
+    </p>
+    <p>
+        <label>Description:<br>
+            <textarea name="description" rows="8" cols="80">{% if product %}{{ product.description }}{% endif %}</textarea>
+        </label>
     </p>
     <p>
         <label>Photo (JPG, max 800×800):<br>

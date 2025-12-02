@@ -9,18 +9,18 @@
 
 <table border="1" cellpadding="4">
     <tr>
-        <th>Date</th>
-        <th>Base</th>
-        <th>Extras</th>
-        <th>Import %</th>
-        <th>Margin %</th>
+        <th>Datum</th>
+        <th>Cena ka nama</th>
+        <th>Dodatni tr.</th>
+        <th>Uvoz %</th>
+        <th>Zarada %</th>
         <th>Dom. tr.</th>
-        <th>Cost total</th>
-        <th>Calc price</th>
-        <th>Final price</th>
+        <th>Ukupno kostanje</th>
+        <th>Izracunata cena</th>
+        <th>Konacna cena</th>
         <th>Profit</th>
-        <th>Discount %</th>
-        <th>Discount price</th>
+        <th>Popust %</th>
+        <th>Cena sa popustom</th>
         <th>Profit (disc)</th>
         <th>Actions</th>
     </tr>
@@ -28,7 +28,7 @@
     <tr>
         <td>
             <a href="{{ url_for('edit_price', product_id=product.id, price_id=r.id) }}">
-                {{ r.date }}
+                {{ r.date.strftime('%d-%m-%Y') }}
             </a>
         </td>
         <td>{{ r.base_price | round(2) }}</td>
