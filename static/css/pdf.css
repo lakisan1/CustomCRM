@@ -4,69 +4,26 @@
     size: A4;
 
     /* More room for logo + header, comfortable bottom */
-    margin: 30mm 10mm 25mm 20mm; /* 30 top, 10 right, 25 bottom, 20 left */
+    margin: 30mm 10mm 25mm 20mm;
+    /* 30 top, 10 right, 25 bottom, 20 left */
 
     /* Header: use the running .pdf-header block */
     @top-center {
         content: element(doc-header);
     }
 
-    /* Footer on EVERY page – text only */
-
-    /* LEFT: tel / mob / email / web */
-    @bottom-left {
-        content: "tel: +381 11 8075 777\A"
-                 "mob: +381 63 242 314\A"
-                 "e-mail: office@hofmann-srbija.com\A"
-                 "web site: www.hofmann-srbija.rs\A"
-                 " \A"
-                 " ";
-        white-space: pre;           /* respect \A line breaks */
-        font-size: 8pt;
-        font-family: Arial, sans-serif;
-        border-top: 1.5pt solid #000;
-        padding-top: 3.0mm;
-        width: 40%;
-    }
-
-    /* CENTER: page X of Y */
+    /* Footer: use the running .pdf-footer block */
     @bottom-center {
-        content: "Strana " counter(page) " od " counter(pages)
-                 " \A"
-                 " \A"
-                 " \A"
-                 " \A"
-                 " ";
-        white-space: pre;           /* respect \A line breaks */
-        font-size: 8pt;
-        font-family: Arial, sans-serif;
-        border-top: 1.5pt solid #000;
-        padding-top: 0mm;
-        width: 20%;
-    }
-
-    /* RIGHT: TR / PIB / Matični broj */
-    @bottom-right {
-        content: "TR: 220-21678-48\A"
-                 "TR: 205-241423-21\A"
-                 "PIB: SR 101030495\A"
-                 "Matični broj: 07775911\A"
-                 " \A"
-                 " ";
-        white-space: pre;           /* respect \A line breaks */
-        font-size: 8pt;
-        font-family: Arial, sans-serif;
-        text-align: right;
-        border-top: 1.5pt solid #000;
-        padding-top: 3.0mm;
-        width: 40%;
+        content: element(doc-footer);
+        width: 100%;
     }
 }
 
 /* Header content (logo + company info) */
 .pdf-header {
     position: running(doc-header);
-    font-size: 8pt;               /* smaller header text */
+    font-size: 8pt;
+    /* smaller header text */
 }
 
 /* Ensure header tables look clean */
@@ -84,17 +41,30 @@
     max-height: 40px;
 }
 
-/* We do NOT use the HTML footer in PDF anymore.
-   If offer_footer_inner.html has .pdf-footer, hide it in PDF output. */
+/* Footer content (ISO logo + contact info) */
 .pdf-footer {
-    display: none;
+    position: running(doc-footer);
+    width: 100%;
+    font-size: 8pt;
+    border-top: 1px solid #000;
+    padding-top: 4px;
+}
+
+/* Page numbering in the running footer */
+.page-num::after {
+    content: counter(page);
+}
+
+.page-count::after {
+    content: counter(pages);
 }
 
 /* === Body & tables ====================================== */
 
 body {
     font-family: Arial, sans-serif;
-    font-size: 9pt;      /* base font */
+    font-size: 9pt;
+    /* base font */
     margin: 0;
     padding: 0;
 }
@@ -164,7 +134,8 @@ body {
 }
 
 .items-table .col-qty {
-    width: 6%;   /* smaller Kom column */
+    width: 6%;
+    /* smaller Kom column */
 }
 
 .items-table .col-unit {

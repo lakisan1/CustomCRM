@@ -86,10 +86,10 @@ pkill -f "pricing_app/app.py" || true
 pkill -f "quotation_app/app.py" || true
 
 echo "Starting pricing_app on port 5000..."
-nohup python3 pricing_app/app.py > pricing.log 2>&1 &
+nohup python3 pricing_app/app.py > /dev/null 2>&1 &
 
 echo "Starting quotation_app on port 5001..."
-nohup python3 quotation_app/app.py > quotation.log 2>&1 &
+nohup python3 quotation_app/app.py > /dev/null 2>&1 &
 
 echo "All done. Apps should now be up:"
 echo "  - Pricing app   : http://<server-ip>:5000/products"

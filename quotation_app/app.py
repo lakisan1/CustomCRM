@@ -3,35 +3,27 @@ import sqlite3
 import os
 import sys
 import io
-import pdfkit
+# pdfkit removed
 import requests
 from weasyprint import HTML, CSS
 from datetime import date
 from pathlib import Path
 
 # Base directory = the "Custom" folder (parent of this app folder)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# We now use shared.config for this.
 
-# app_data folder inside Custom
-APP_DATA_DIR = os.path.join(BASE_DIR, "app_data")
+# Ensure we can import 'shared' from parent dir
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURRENT_DIR)
+if PARENT_DIR not in sys.path:
+    sys.path.append(PARENT_DIR)
 
-# pricing.db inside app_data
-DATABASE = os.path.join(APP_DATA_DIR, "pricing.db")
-
-# product_images inside app_data
-IMAGE_DIR = os.path.join(APP_DATA_DIR, "product_images")
-
-# app_assets inside app_data
-APP_ASSETS_DIR = os.path.join(BASE_DIR, "app_assets")
+from shared.config import BASE_DIR, APP_DATA_DIR, DATABASE, IMAGE_DIR, APP_ASSETS_DIR, STATIC_DIR
+from shared.db import get_db
 
 #  common_utils app import
-if BASE_DIR not in sys.path:
-    sys.path.append(BASE_DIR)
-
+# it's in PARENT_DIR which is already in sys.path
 from common_utils import format_amount
-
-# static/css path
-STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 app = Flask(
     __name__,
@@ -39,10 +31,7 @@ app = Flask(
     static_url_path="/static"
 )
 
-def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+# get_db is now imported from shared.db
 
 def init_db():
     conn = get_db()
@@ -74,9 +63,17 @@ def init_db():
             payment_terms TEXT,
             delivery_terms TEXT,
             validity_days INTEGER,
-            notes TEXT
+            notes TEXT,
+            napomena TEXT
         );
     """)
+
+    # --- Migration for existing databases ---
+    try:
+        cur.execute("ALTER TABLE offers ADD COLUMN napomena TEXT;")
+    except sqlite3.OperationalError:
+        # Already exists
+        pass
 
     # Offer items table
     cur.execute("""
@@ -215,6 +212,7 @@ def new_offer():
         delivery_terms = (request.form.get("delivery_terms") or "").strip()
         validity_days = int(request.form.get("validity_days") or 10)
         notes = (request.form.get("notes") or "").strip()
+        napomena = (request.form.get("napomena") or "").strip()
 
         conn = get_db()
         cur = conn.cursor()
@@ -226,15 +224,15 @@ def new_offer():
                 discount_percent, vat_percent,
                 total_net, total_discount, total_net_after_discount,
                 total_vat, total_gross,
-                payment_terms, delivery_terms, validity_days, notes
+                payment_terms, delivery_terms, validity_days, notes, napomena
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?, ?, ?, ?);
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?, ?, ?, ?, ?);
         """, (
             offer_number, date_str,
             client_name, client_address, client_email, client_phone,
             currency, exchange_rate,
             discount_percent, vat_percent,
-            payment_terms, delivery_terms, validity_days, notes
+            payment_terms, delivery_terms, validity_days, notes, napomena
         ))
         offer_id = cur.lastrowid
         conn.commit()
@@ -325,6 +323,7 @@ def edit_offer(offer_id):
             delivery_terms = (request.form.get("delivery_terms") or "").strip()
             validity_days = int(request.form.get("validity_days") or 10)
             notes = (request.form.get("notes") or "").strip()
+            napomena = (request.form.get("napomena") or "").strip()
 
             cur.execute("""
                 UPDATE offers
@@ -332,14 +331,14 @@ def edit_offer(offer_id):
                     client_name = ?, client_address = ?, client_email = ?, client_phone = ?,
                     currency = ?, exchange_rate = ?,
                     discount_percent = ?, vat_percent = ?,
-                    payment_terms = ?, delivery_terms = ?, validity_days = ?, notes = ?
+                    payment_terms = ?, delivery_terms = ?, validity_days = ?, notes = ?, napomena = ?
                 WHERE id = ?;
             """, (
                 offer_number, date_str,
                 client_name, client_address, client_email, client_phone,
                 currency, exchange_rate,
                 discount_percent, vat_percent,
-                payment_terms, delivery_terms, validity_days, notes,
+                payment_terms, delivery_terms, validity_days, notes, napomena,
                 offer_id
             ))
             conn.commit()
@@ -625,13 +624,18 @@ def offer_pdf(offer_id):
     logo_path = os.path.join(APP_ASSETS_DIR, "logo_company.jpg")
     logo_uri = Path(logo_path).as_uri()
 
-    # Render HTML (note: we pass items_for_pdf, logo_uri, pdf_mode=True)
+    # ---- RIG Logo URI ----
+    rig_path = os.path.join(APP_ASSETS_DIR, "RIG.png")
+    rig_uri = Path(rig_path).as_uri()
+
+    # Render HTML (note: we pass items_for_pdf, logo_uri, rig_uri, pdf_mode=True)
     html_string = render_template(
         "pdf_offer.html",
         offer=offer,
         items=items_for_pdf,
         pdf_mode=True,
         logo_uri=logo_uri,
+        rig_uri=rig_uri,
     )
 
     pdf_css_path = os.path.join(BASE_DIR, "static", "css", "pdf.css")
@@ -687,9 +691,9 @@ def duplicate_offer(offer_id):
             discount_percent, vat_percent,
             total_net, total_discount, total_net_after_discount,
             total_vat, total_gross,
-            payment_terms, delivery_terms, validity_days, notes
+            payment_terms, delivery_terms, validity_days, notes, napomena
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?, ?, ?, ?);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?, ?, ?, ?, ?);
     """, (
         "",                         # new offer_number (you can type it later)
         new_date,
@@ -705,6 +709,7 @@ def duplicate_offer(offer_id):
         offer["delivery_terms"],
         offer["validity_days"],
         offer["notes"],
+        offer["napomena"],
     ))
     new_offer_id = cur.lastrowid
 

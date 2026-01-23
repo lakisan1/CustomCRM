@@ -32,15 +32,14 @@
 
         <td style="text-align:center;">
             {% if it.item_photo_path %}
-                {% if pdf_mode %}
-                    {% if it.item_photo_uri %}
-                        <img src="{{ it.item_photo_uri }}"
-                            style="max-width: 80px; max-height: 80px;">
-                    {% endif %}
-                {% else %}
-                    <img src="{{ url_for('product_image', filename=it.item_photo_path) }}"
-                        style="max-width: 120px; max-height: 120px;">
-                {% endif %}
+            {% if pdf_mode %}
+            {% if it.item_photo_uri %}
+            <img src="{{ it.item_photo_uri }}" style="max-width: 80px; max-height: 80px;">
+            {% endif %}
+            {% else %}
+            <img src="{{ url_for('product_image', filename=it.item_photo_path) }}"
+                style="max-width: 120px; max-height: 120px;">
+            {% endif %}
             {% endif %}
         </td>
 
@@ -72,21 +71,25 @@
             <td style="width:70%; text-align:left;">
                 Cene su u {{ offer.currency or 'EUR' }}.<br>
                 {% if offer.currency != 'RSD' and offer.exchange_rate %}
-                    Obračun u RSD vrši se po kursu {{ offer.exchange_rate }} na dan izdavanja predračuna.
+                Obračun u RSD vrši se po kursu {{ offer.exchange_rate }} na dan izdavanja predračuna.
                 {% endif %}<br>
                 OPCIJA UPLATE: {{ offer.payment_terms or 'po dogovoru' }}<br>
                 ROK ISPORUKE: {{ offer.delivery_terms or 'po dogovoru' }}<br>
                 ROK VAŽENJA PONUDE: {{ offer.validity_days or 10 }} dana<br>
+                <br>
+                {% if offer.napomena %}
+                NAPOMENA: {{ offer.napomena }}<br>
+                {% endif %}
             </td>
             <td style="width:30%; text-align:right;">
-                UKUPNO:
+                SUMA:
                 {{ format_amount(offer.total_net or 0) }}<br>
-                POPUST:
+                POPUST {{ ((offer.discount_percent or 0) * 100) | round(2) }}%:
                 {{ format_amount(offer.total_discount or 0) }}<br>
 
                 <span style="display:block; border-top:1px solid #000; margin:4px 0;"></span>
 
-                UKUPNO posle popusta:
+                UKUPNO:
                 {{ format_amount(offer.total_net_after_discount or 0) }}<br>
                 PDV {{ ((offer.vat_percent or 0) * 100) | round(2) }}%:
                 {{ format_amount(offer.total_vat or 0) }}<br>
@@ -110,20 +113,16 @@
     <br><br>
     <table class="footer-table">
         <tr>
-            <td style="text-align:center;">
+            <td style="text-align:left;">
                 u V. Moštanici, {{ offer.date }}
             </td>
-            <td style="text-align:center;">
-                Vlada Marinkovic
-                <br>
-                <br>
-                ______________________
+            <td style="text-align:right;">
+                {# Signature removed #}
             </td>
         </tr>
     </table>
 
-    <p style="text-align:center;">
-        <br>
+    <p style="text-align:left;">
         <br>
         <strong>PONUDA JE VAŽEĆA BEZ PEČATA I POTPISA</strong>
     </p>

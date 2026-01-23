@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}
-    {% if price %}Edit Price - {{ product.name }}{% else %}New Price - {{ product.name }}{% endif %}
+{% if price %}Edit Price - {{ product.name }}{% else %}New Price - {{ product.name }}{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -9,15 +9,17 @@
 </h1>
 
 <style>
-  .forms-row {
-      display: flex;
-      gap: 2rem;           /* space between the two columns */
-      align-items: flex-start;
-  }
+    .forms-row {
+        display: flex;
+        gap: 2rem;
+        /* space between the two columns */
+        align-items: flex-start;
+    }
 
-  .forms-row .form-column {
-      flex: 1;             /* make both columns share the space */
-  }
+    .forms-row .form-column {
+        flex: 1;
+        /* make both columns share the space */
+    }
 </style>
 
 <form method="post" id="price-form">
@@ -31,26 +33,29 @@
                 </label>
             </p>
 
-            <p><h2>Troskovi</h2></p>
+            <p>
+            <h2>Troskovi</h2>
+            </p>
 
             <p>
                 <label>Nabavna cena:<br>
-                    <input type="number" step="any" name="base_price" id="base_price"
-                        required oninput="calculatePrice();"
-                        value="{% if price %}{{ price.base_price }}{% endif %}">
+                    <input type="number" step="any" name="base_price" id="base_price" required
+                        oninput="calculatePrice(this);" value="{% if price %}{{ price.base_price }}{% endif %}">
+
                 </label>
             </p>
 
             <p>
                 <label>Dodatni troskovi:<br>
-                    <input type="number" step="any" name="extras" id="extras" oninput="calculatePrice()"
+                    <input type="number" step="any" name="extras" id="extras" oninput="calculatePrice(this)"
                         value="{% if price %}{{ price.extras }}{% else %}{{ defaults.extras }}{% endif %}">
                 </label>
             </p>
 
             <p>
                 <label>Uvoz %:<br>
-                    <input type="number" step="any" name="import_percent" id="import_percent" oninput="calculatePrice()"
+                    <input type="number" step="any" name="import_percent" id="import_percent"
+                        oninput="calculatePrice(this)"
                         value="{% if price %}{{ ((price.import_percent or 0) * 100) | round(2) }}{% else %}{{ defaults.import_percent | round(2) }}{% endif %}">
                     <small>(e.g. 7 for 7%)</small>
                 </label>
@@ -58,7 +63,8 @@
 
             <p>
                 <label>Zarada %:<br>
-                    <input type="number" step="any" name="margin_percent" id="margin_percent" oninput="calculatePrice()"
+                    <input type="number" step="any" name="margin_percent" id="margin_percent"
+                        oninput="calculatePrice(this)"
                         value="{% if price %}{{ ((price.margin_percent or 0) * 100) | round(2) }}{% else %}{{ defaults.margin_percent | round(2) }}{% endif %}">
                     <small>(e.g. 40 for 40%)</small>
                 </label>
@@ -66,8 +72,45 @@
 
             <p>
                 <label>Domaci transport:<br>
-                    <input type="number" step="any" name="domestic_transport" id="domestic_transport" oninput="calculatePrice()"
+                    <input type="number" step="any" name="domestic_transport" id="domestic_transport"
+                        oninput="calculatePrice(this)"
                         value="{% if price %}{{ price.domestic_transport }}{% else %}{{ defaults.domestic_transport }}{% endif %}">
+                </label>
+            </p>
+
+            <p>
+
+
+            <p>
+                <label>Garancija %:<br>
+                    <input type="number" step="any" name="warranty_percent" id="warranty_percent"
+                        oninput="calculatePrice(this)"
+                        value="{% if price %}{{ ((price.warranty_percent or 0) * 100) | round(2) }}{% else %}0{% endif %}">
+                </label>
+            </p>
+            <p>
+                <label>Servis %:<br>
+                    <input type="number" step="any" name="service_percent" id="service_percent"
+                        oninput="calculatePrice(this)"
+                        value="{% if price %}{{ ((price.service_percent or 0) * 100) | round(2) }}{% else %}0{% endif %}">
+                </label>
+            </p>
+            <p>
+                <label>Instalacija:<br>
+                    <input type="number" step="any" name="instalation" id="instalation" oninput="calculatePrice(this)"
+                        value="{% if price %}{{ price.instalation }}{% else %}0{% endif %}">
+                </label>
+            </p>
+            <p>
+                <label>Obuka:<br>
+                    <input type="number" step="any" name="traning" id="traning" oninput="calculatePrice(this)"
+                        value="{% if price %}{{ price.traning }}{% else %}0{% endif %}">
+                </label>
+            </p>
+            <p>
+                <label>Ostalo:<br>
+                    <input type="number" step="any" name="other" id="other" oninput="calculatePrice(this)"
+                        value="{% if price %}{{ price.other }}{% else %}0{% endif %}">
                 </label>
             </p>
 
@@ -79,7 +122,9 @@
 
         <!-- RIGHT COLUMN -->
         <div class="form-column">
-            <p><h2>Konacna cena i zarada</h2></p>
+            <p>
+            <h2>Konacna cena i zarada</h2>
+            </p>
 
             <p>
                 <strong>Izracunata cena:</strong>
@@ -88,7 +133,7 @@
 
             <p>
                 <label>Konacna cena (lepa okrugla):<br>
-                    <input type="number" step="any" name="final_price" id="final_price" oninput="calculatePrice()"
+                    <input type="number" step="any" name="final_price" id="final_price" oninput="calculatePrice(this)"
                         value="{% if price %}{{ price.final_price }}{% endif %}">
                     <small>optional, ako se ostavi prazno koristi Izracunatu cenu</small>
                 </label>
@@ -99,7 +144,9 @@
                 <span id="profit_final_display">–</span><br>
             </p>
 
-            <p><h2>Popust</h2></p>
+            <p>
+            <h2>Popust</h2>
+            </p>
 
             <p>
                 <label>Popust % (optional):<br>
@@ -110,15 +157,15 @@
             </p>
 
             <p>
-                <button type="button"
-                    onclick="document.getElementById('discount_price').value = ''; calculatePrice();">
+                <button type="button" onclick="document.getElementById('discount_price').value = ''; calculatePrice();">
                     Izracunaj
                 </button>
             </p>
 
             <p>
                 <label>Cena sa popustom (lepa okrugla, optional):<br>
-                    <input type="number" step="any" name="discount_price" id="discount_price" oninput="calculatePrice()"
+                    <input type="number" step="any" name="discount_price" id="discount_price"
+                        oninput="calculatePrice(this)"
                         value="{% if price and price.discount_price is not none %}{{ price.discount_price }}{% endif %}">
                     <small>optional, ako se ostavi prazno koristi Izracunatu cenu</small>
                 </label>
@@ -139,84 +186,121 @@
 </form>
 
 <script>
-function parseNumber(value) {
-    if (typeof value === "string") {
-        value = value.replace(",", ".");
-    }
-    var num = parseFloat(value);
-    return isNaN(num) ? 0 : num;
-}
-
-function calculatePrice() {
-    const basePrice        = parseNumber(document.getElementById("base_price").value);
-    const extras           = parseNumber(document.getElementById("extras").value);
-    const importPercentVal = parseNumber(document.getElementById("import_percent").value);
-    const marginPercentVal = parseNumber(document.getElementById("margin_percent").value);
-    const domTransport     = parseNumber(document.getElementById("domestic_transport").value);
-
-    const discountPercentInput = document.getElementById("discount_percent");
-    const discountPriceInput   = document.getElementById("discount_price");
-
-    const discountPercentVal = parseNumber(discountPercentInput.value);
-    let   discountPriceVal   = parseNumber(discountPriceInput.value);
-
-    // Convert percents like 7, 40, 10 into 0.07, 0.40, 0.10
-    const importPercent = importPercentVal / 100.0;
-    const marginPercent = marginPercentVal / 100.0;
-    const discountPercent = discountPercentVal / 100.0;
-
-    const baseTotal = basePrice + extras;
-
-    // Cost total uses import + domestic transport (like backend)
-    const costTotal = baseTotal * (1 + importPercent) + domTransport;
-
-    // Calculated price matches backend/Excel:
-    const calculatedPrice = baseTotal * (1 + marginPercent) + domTransport;
-
-    // Final price: if empty, use calculated
-    const finalPriceField = document.getElementById("final_price");
-    let finalPrice = parseNumber(finalPriceField.value);
-    if (!finalPrice) {
-        finalPrice = calculatedPrice;
-        finalPriceField.value = finalPrice.toFixed(2);
+    function parseNumber(value) {
+        if (typeof value === "string") {
+            value = value.replace(",", ".");
+        }
+        var num = parseFloat(value);
+        return isNaN(num) ? 0 : num;
     }
 
-    // Profit at final price
-    const profitFinal = finalPrice - costTotal;
+    function applyRounding(val) {
+        if (val <= 0) return 0;
 
-    // Discount logic – keep % and nice discount price independent:
-    // 1) If user has NOT entered a nice discount price but HAS entered a %,
-    //    fill the discount price field with the calculated price.
-    if (discountPriceVal <= 0 && discountPercent > 0 && finalPrice > 0) {
-        discountPriceVal = finalPrice * (1 - discountPercent);
-        discountPriceInput.value = discountPriceVal.toFixed(2);
+        let step = 0;
+        if (val <= 1000) {
+            step = 50;
+        } else if (val <= 10000) {
+            step = 100;
+        } else if (val <= 30000) {
+            step = 500;
+        } else {
+            step = 1000;
+        }
+
+        // Round UP to nearest step
+        // e.g. 1230 -> 1300 (step 100)
+        return Math.ceil(val / step) * step;
     }
 
-    let discountPrice = null;
-    let profitDiscount = null;
+    function calculatePrice(source) {
+        const basePrice = parseNumber(document.getElementById("base_price").value);
+        const extras = parseNumber(document.getElementById("extras").value);
+        const importPercentVal = parseNumber(document.getElementById("import_percent").value);
+        const marginPercentVal = parseNumber(document.getElementById("margin_percent").value);
 
-    if (discountPriceVal > 0) {
-        discountPrice = discountPriceVal;
-        profitDiscount = discountPrice - costTotal;
+        // New fields
+        const warrantyPercentVal = parseNumber(document.getElementById("warranty_percent").value);
+        const servicePercentVal = parseNumber(document.getElementById("service_percent").value);
+        const instalation = parseNumber(document.getElementById("instalation").value);
+        const traning = parseNumber(document.getElementById("traning").value);
+        const other = parseNumber(document.getElementById("other").value);
+
+        const domTransport = parseNumber(document.getElementById("domestic_transport").value);
+
+        const discountPercentInput = document.getElementById("discount_percent");
+        const discountPriceInput = document.getElementById("discount_price");
+
+        const discountPercentVal = parseNumber(discountPercentInput.value);
+        let discountPriceVal = parseNumber(discountPriceInput.value);
+
+        // Convert percents like 7, 40, 10 into 0.07, 0.40, 0.10
+        const importPercent = importPercentVal / 100.0;
+        const marginPercent = marginPercentVal / 100.0;
+        const warrantyPercent = warrantyPercentVal / 100.0;
+        const servicePercent = servicePercentVal / 100.0;
+        const discountPercent = discountPercentVal / 100.0;
+
+        const baseTotal = basePrice + extras;
+
+        // New Formula: 
+        // cost_total = (base + extras) * (1 + import + warranty + service) + domestic + install + training + other
+        const costTotal = baseTotal * (1 + importPercent + warrantyPercent + servicePercent) + domTransport + instalation + traning + other;
+
+        // Calculated price: cost_total * (1 + margin)
+        const calculatedPrice = costTotal * (1 + marginPercent);
+
+        // Final price logic:
+        // If the user IS editing final_price, respect their input.
+        // If the user IS NOT editing final_price (editing other fields), auto-calculate and round.
+        const finalPriceField = document.getElementById("final_price");
+        let finalPrice = 0;
+
+        if (source === finalPriceField) {
+            // User is manually typing final price
+            finalPrice = parseNumber(finalPriceField.value);
+        } else {
+            // User is typing other fields -> Auto calculate & Round
+            finalPrice = applyRounding(calculatedPrice);
+            finalPriceField.value = finalPrice.toFixed(2);
+        }
+
+        // Profit at final price
+        const profitFinal = finalPrice - costTotal;
+
+        // Discount logic – keep % and nice discount price independent:
+        // 1) If user has NOT entered a nice discount price but HAS entered a %,
+        //    fill the discount price field with the calculated price.
+        if (discountPriceVal <= 0 && discountPercent > 0 && finalPrice > 0) {
+            discountPriceVal = finalPrice * (1 - discountPercent);
+            discountPriceInput.value = discountPriceVal.toFixed(2);
+        }
+
+        let discountPrice = null;
+        let profitDiscount = null;
+
+        if (discountPriceVal > 0) {
+            discountPrice = discountPriceVal;
+            profitDiscount = discountPrice - costTotal;
+        }
+
+        // Update display
+        document.getElementById("cost_total_display").textContent =
+            costTotal.toFixed(2);
+        document.getElementById("calculated_price_display").textContent =
+            calculatedPrice.toFixed(2);
+        document.getElementById("profit_final_display").textContent =
+            profitFinal.toFixed(2);
+
+        if (discountPrice !== null) {
+            document.getElementById("discount_price_display").textContent =
+                discountPrice.toFixed(2);
+            document.getElementById("profit_discount_display").textContent =
+                profitDiscount.toFixed(2);
+        } else {
+            document.getElementById("discount_price_display").textContent = "–";
+            document.getElementById("profit_discount_display").textContent = "–";
+        }
     }
-
-    // Update display
-    document.getElementById("cost_total_display").textContent =
-        costTotal.toFixed(2);
-    document.getElementById("calculated_price_display").textContent =
-        calculatedPrice.toFixed(2);
-    document.getElementById("profit_final_display").textContent =
-        profitFinal.toFixed(2);
-
-    if (discountPrice !== null) {
-        document.getElementById("discount_price_display").textContent =
-            discountPrice.toFixed(2);
-        document.getElementById("profit_discount_display").textContent =
-            profitDiscount.toFixed(2);
-    } else {
-        document.getElementById("discount_price_display").textContent = "–";
-        document.getElementById("profit_discount_display").textContent = "–";
-    }
-}
 </script>
 {% endblock %}

@@ -4,6 +4,12 @@
 {% block content %}
 <h1>Brands</h1>
 
+{% if error %}
+<div style="color: red; border: 1px solid red; background-color: #fdd; padding: 10px; margin-bottom: 20px;">
+    <strong>Greška:</strong> {{ error }}
+</div>
+{% endif %}
+
 <h2>Add / edit brand</h2>
 <form method="post">
     <p>
@@ -22,43 +28,51 @@
 <table border="1" cellpadding="4">
     <tr>
         <th>Brand</th>
+        <th>Action</th>
     </tr>
     {% for b in brands %}
     <tr>
         <td>
-            <a href="#"
-               class="brand-link"
-               data-name="{{ b.name }}">
+            <a href="#" class="brand-link" data-name="{{ b.name }}">
                 {{ b.name }}
             </a>
+        </td>
+        <td>
+            <form action="{{ url_for('delete_brand') }}" method="post"
+                onsubmit="return confirm('Are you sure you want to delete brand \'{{ b.name }}\'?');"
+                style="display:inline;">
+                <input type="hidden" name="brand_to_delete" value="{{ b.name }}">
+                <button type="submit"
+                    style="color:red; background:none; border:none; cursor:pointer; text-decoration:underline;">Delete</button>
+            </form>
         </td>
     </tr>
     {% endfor %}
 </table>
 
 <script>
-function clearBrandForm() {
-    const nameInput = document.getElementById("brand_name");
-    const oldNameInput = document.getElementById("old_name");
-    if (nameInput) nameInput.value = "";
-    if (oldNameInput) oldNameInput.value = "";
-    if (nameInput) nameInput.focus();
-}
+    function clearBrandForm() {
+        const nameInput = document.getElementById("brand_name");
+        const oldNameInput = document.getElementById("old_name");
+        if (nameInput) nameInput.value = "";
+        if (oldNameInput) oldNameInput.value = "";
+        if (nameInput) nameInput.focus();
+    }
 
-document.addEventListener("DOMContentLoaded", function () {
-    const nameInput = document.getElementById("brand_name");
-    const oldNameInput = document.getElementById("old_name");
-    if (!nameInput || !oldNameInput) return;
+    document.addEventListener("DOMContentLoaded", function () {
+        const nameInput = document.getElementById("brand_name");
+        const oldNameInput = document.getElementById("old_name");
+        if (!nameInput || !oldNameInput) return;
 
-    document.querySelectorAll(".brand-link").forEach(function (link) {
-        link.addEventListener("click", function (e) {
-            e.preventDefault();
-            const brand = this.dataset.name || "";
-            nameInput.value = brand;
-            oldNameInput.value = brand;  // remember original
-            nameInput.focus();
+        document.querySelectorAll(".brand-link").forEach(function (link) {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+                const brand = this.dataset.name || "";
+                nameInput.value = brand;
+                oldNameInput.value = brand;  // remember original
+                nameInput.focus();
+            });
         });
     });
-});
 </script>
 {% endblock %}

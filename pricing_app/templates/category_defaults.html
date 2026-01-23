@@ -3,6 +3,12 @@
 {% block content %}
 <h1>Kategorije</h1>
 
+{% if error %}
+<div style="color: red; border: 1px solid red; background-color: #fdd; padding: 10px; margin-bottom: 20px;">
+    <strong>Greška:</strong> {{ error }}
+</div>
+{% endif %}
+
 <h2>Dodaj / izmeni kategoriju</h2>
 <form method="post">
     <p>
@@ -30,6 +36,31 @@
             <input type="number" step="any" name="domestic_transport" value="0">
         </label>
     </p>
+    <p>
+        <label>Garancija %:<br>
+            <input type="number" step="any" name="warranty_percent" value="0">
+        </label>
+    </p>
+    <p>
+        <label>Servis %:<br>
+            <input type="number" step="any" name="service_percent" value="0">
+        </label>
+    </p>
+    <p>
+        <label>Instalacija:<br>
+            <input type="number" step="any" name="instalation" value="0">
+        </label>
+    </p>
+    <p>
+        <label>Obuka:<br>
+            <input type="number" step="any" name="traning" value="0">
+        </label>
+    </p>
+    <p>
+        <label>Ostalo:<br>
+            <input type="number" step="any" name="other" value="0">
+        </label>
+    </p>
 
     <input type="hidden" name="old_category" id="old_category">
 
@@ -47,14 +78,19 @@
         <th style="width: 70px;">Import %</th>
         <th style="width: 70px;">Margin %</th>
         <th>Dom. transport</th>
+        <th>Garancija %</th>
+        <th>Servis %</th>
+        <th>Instalacija</th>
+        <th>Obuka</th>
+        <th>Ostalo</th>
+        <th>Action</th>
     </tr>
     {% for d in defaults %}
     <tr>
     <tr>
+    <tr>
         <td>
-            <a href="#"
-               class="cat-link"
-               data-category="{{ d.category }}">
+            <a href="#" class="cat-link" data-category="{{ d.category }}">
                 {{ d.category }}
             </a>
         </td>
@@ -62,41 +98,55 @@
         <td>{{ d.default_extras }}</td>
         <td>{{ ((d.margin_percent or 0) * 100) | round(2)}}</td>
         <td>{{ d.domestic_transport }}</td>
+        <td>{{ ((d.warranty_percent or 0) * 100) | round(2)}}</td>
+        <td>{{ ((d.service_percent or 0) * 100) | round(2)}}</td>
+        <td>{{ d.instalation }}</td>
+        <td>{{ d.traning }}</td>
+        <td>{{ d.other }}</td>
+        <td>
+            <form action="{{ url_for('delete_category_default') }}" method="post"
+                onsubmit="return confirm('Are you sure you want to delete category \'{{ d.category }}\'?');"
+                style="display:inline;">
+                <input type="hidden" name="category_to_delete" value="{{ d.category }}">
+                <button type="submit"
+                    style="color:red; background:none; border:none; cursor:pointer; text-decoration:underline;">Delete</button>
+            </form>
+        </td>
     </tr>
     {% endfor %}
 </table>
 
 <script>
-function clearCategoryForm() {
-    const catInput = document.getElementById("category_input");
-    const oldCatInput = document.getElementById("old_category");
+    function clearCategoryForm() {
+        const catInput = document.getElementById("category_input");
+        const oldCatInput = document.getElementById("old_category");
 
-    if (catInput) catInput.value = "";
-    if (oldCatInput) oldCatInput.value = "";
+        if (catInput) catInput.value = "";
+        if (oldCatInput) oldCatInput.value = "";
 
-    // Optionally clear the numeric fields too:
-    document.querySelectorAll('input[name="import_percent"], input[name="margin_percent"], input[name="domestic_transport"], input[name="default_extras"]').forEach(function (el) {
-        el.value = "";
-    });
+        // Optionally clear the numeric fields too:
+        document.querySelectorAll('input[name="import_percent"], input[name="margin_percent"], input[name="domestic_transport"], input[name="default_extras"], input[name="warranty_percent"], input[name="service_percent"], input[name="instalation"], input[name="traning"], input[name="other"]').forEach(function (el) {
+            el.value = "";
+        });
 
-    if (catInput) catInput.focus();
-}
+        if (catInput) catInput.focus();
+    }
 
-document.addEventListener("DOMContentLoaded", function () {
-    const catInput = document.getElementById("category_input");
-    const oldCatInput = document.getElementById("old_category");
-    if (!catInput || !oldCatInput) return;
+    document.addEventListener("DOMContentLoaded", function () {
+        const catInput = document.getElementById("category_input");
+        const oldCatInput = document.getElementById("old_category");
+        if (!catInput || !oldCatInput) return;
 
-    document.querySelectorAll(".cat-link").forEach(function (link) {
-        link.addEventListener("click", function (e) {
-            e.preventDefault();
-            const cat = this.dataset.category || "";
-            catInput.value = cat;
-            oldCatInput.value = cat;  // remember original category for rename
-            catInput.focus();
+        document.querySelectorAll(".cat-link").forEach(function (link) {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+                const cat = this.dataset.category || "";
+                catInput.value = cat;
+                oldCatInput.value = cat;  // remember original category for rename
+                catInput.focus();
+            });
         });
     });
-});
 </script>
 
 {% endblock %}

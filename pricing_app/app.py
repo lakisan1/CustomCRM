@@ -10,25 +10,22 @@ from PIL import Image
 from datetime import date
 
 # Base directory = the "Custom" folder (parent of this app folder)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# We now use shared.config for this.
+import sys
+import os
 
-# app_data folder inside Custom
-APP_DATA_DIR = os.path.join(BASE_DIR, "app_data")
+# Ensure we can import 'shared' from parent dir
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURRENT_DIR)
+if PARENT_DIR not in sys.path:
+    sys.path.append(PARENT_DIR)
 
-# pricing.db inside app_data
-DATABASE = os.path.join(APP_DATA_DIR, "pricing.db")
+from shared.config import BASE_DIR, APP_DATA_DIR, DATABASE, IMAGE_DIR, STATIC_DIR
+from shared.db import get_db
 
-# product image data
-IMAGE_DIR = os.path.join(APP_DATA_DIR, "product_images")
-
-# import common_utils
-if BASE_DIR not in sys.path:
-    sys.path.append(BASE_DIR)
-
+# import common_utils (it's in PARENT_DIR)
+# we already added PARENT_DIR to sys.path above
 from common_utils import format_amount
-
-# static/css path
-STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 app = Flask(
     __name__,
@@ -36,10 +33,7 @@ app = Flask(
     static_url_path="/static"
 )
 
-def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
+# get_db is now imported from shared.db
 
 
 def init_db():
@@ -65,7 +59,12 @@ def init_db():
             import_percent REAL,        -- e.g. 0.07 for 7%
             margin_percent REAL,        -- e.g. 0.40 for 40%
             domestic_transport REAL,    -- fixed cost per unit
-            default_extras REAL         -- extra costs per unit
+            default_extras REAL,        -- extra costs per unit
+            warranty_percent REAL,
+            service_percent REAL,
+            instalation REAL,
+            traning REAL,
+            other REAL
         );
     """)
 
@@ -89,6 +88,12 @@ def init_db():
             margin_percent REAL,            -- marža (0.40 = 40%)
             domestic_transport REAL,        -- Dom. tr.
 
+            warranty_percent REAL,
+            service_percent REAL,
+            instalation REAL,
+            traning REAL,
+            other REAL,
+
             base_total REAL,                -- base_price + extras
             cost_total REAL,                -- total cost
             calculated_price REAL,          -- theoretical price
@@ -99,8 +104,7 @@ def init_db():
             discount_price REAL,            -- final_price after discount
             profit_discount REAL,           -- discount_price - cost_total
 
-            FOREIGN KEY (product_id) REFERENCES products(id),
-            UNIQUE (product_id, date)
+            FOREIGN KEY (product_id) REFERENCES products(id)
         );
     """)
 
@@ -132,11 +136,108 @@ def init_db():
     conn.commit()
     conn.close()
 
+def migrate_schema():
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # 1. Add columns to category_pricing_defaults if missing
+    new_cols = [
+        ("warranty_percent", "REAL"),
+        ("service_percent", "REAL"),
+        ("instalation", "REAL"),
+        ("traning", "REAL"),
+        ("other", "REAL")
+    ]
+    for col_name, col_type in new_cols:
+        try:
+            cur.execute(f"ALTER TABLE category_pricing_defaults ADD COLUMN {col_name} {col_type}")
+        except sqlite3.OperationalError:
+            pass
+
+    # 2. Add columns to prices if missing
+    for col_name, col_type in new_cols:
+        try:
+            cur.execute(f"ALTER TABLE prices ADD COLUMN {col_name} {col_type}")
+        except sqlite3.OperationalError:
+            pass
+
+    # 3. Remove UNIQUE constraint from prices if present
+    cur.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='prices'")
+    row = cur.fetchone()
+    # Check if constraint exists in definition
+    if row and "UNIQUE" in row["sql"] and "product_id" in row["sql"] and "date" in row["sql"]:
+        print("Migrating prices table: removing UNIQUE(product_id, date) constraint...")
+        
+        # Rename old table
+        cur.execute("ALTER TABLE prices RENAME TO prices_old")
+        
+        # Re-create table with NEW schema (from updated init_db logic)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS prices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                product_id INTEGER NOT NULL,
+                date TEXT NOT NULL,
+    
+                base_price REAL NOT NULL,
+                extras REAL DEFAULT 0,
+                import_percent REAL,
+                margin_percent REAL,
+                domestic_transport REAL,
+    
+                warranty_percent REAL,
+                service_percent REAL,
+                instalation REAL,
+                traning REAL,
+                other REAL,
+
+                base_total REAL,
+                cost_total REAL,
+                calculated_price REAL,
+                final_price REAL,
+                profit_final REAL,
+    
+                discount_percent REAL,
+                discount_price REAL,
+                profit_discount REAL,
+    
+                FOREIGN KEY (product_id) REFERENCES products(id)
+            );
+        """)
+        
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_prices_product_id ON prices(product_id);")
+
+        # Copy data
+        # Since we added columns to prices_old (step 2), schemas match
+        cur.execute("INSERT INTO prices SELECT * FROM prices_old")
+        cur.execute("DROP TABLE prices_old")
+        
+    conn.commit()
+    conn.close()
+
 from PIL import Image
 import os
 import re
 
 # ... your other config/imports ...
+
+def apply_rounding(val):
+    if val <= 0:
+        return 0
+    
+    step = 0
+    if val <= 1000:
+        step = 50
+    elif val <= 10000:
+        step = 100
+    elif val <= 30000:
+        step = 500
+    else:
+        step = 1000
+
+    # Round UP to nearest step
+    # ceil(val / step) * step
+    import math
+    return math.ceil(val / step) * step
 
 def save_product_image(file_storage, product_name):
     """
@@ -231,10 +332,9 @@ def list_products():
                pr.discount_price AS current_discount_price
         FROM products p
         LEFT JOIN prices pr
-          ON pr.product_id = p.id
-         AND pr.date = (
-             SELECT MAX(date) FROM prices WHERE product_id = p.id
-         )
+          ON pr.id = (
+              SELECT MAX(id) FROM prices WHERE product_id = p.id
+          )
     """
     params = []
 
@@ -348,8 +448,16 @@ def add_product():
             INSERT INTO products (name, description, category, brand, photo_path)
             VALUES (?, ?, ?, ?, ?);
         """, (name, description, category, brand, photo_path))
+        
+        new_product_id = cur.lastrowid
         conn.commit()
         conn.close()
+
+        # Check which button was clicked
+        action = request.form.get("action")
+        if action == "save_add_price":
+            return redirect(url_for("new_price", product_id=new_product_id))
+
         return redirect(url_for("list_products"))
 
     # GET – load existing categories and brands
@@ -503,10 +611,18 @@ def category_defaults():
         margin_percent_input = float(request.form.get("margin_percent") or 0)
         domestic_transport = float(request.form.get("domestic_transport") or 0)
         default_extras = float(request.form.get("default_extras") or 0)
+        
+        warranty_percent_input = float(request.form.get("warranty_percent") or 0)
+        service_percent_input = float(request.form.get("service_percent") or 0)
+        instalation = float(request.form.get("instalation") or 0)
+        traning = float(request.form.get("traning") or 0)
+        other = float(request.form.get("other") or 0)
 
         # store as fractions (0.07 for 7%)
         import_percent = import_percent_input / 100.0
         margin_percent = margin_percent_input / 100.0
+        warranty_percent = warranty_percent_input / 100.0
+        service_percent = service_percent_input / 100.0
 
         if category:
             if old_category and old_category != category:
@@ -516,12 +632,16 @@ def category_defaults():
                     cur.execute("""
                         UPDATE category_pricing_defaults
                         SET category = ?, import_percent = ?, margin_percent = ?,
-                            domestic_transport = ?, default_extras = ?
+                            domestic_transport = ?, default_extras = ?,
+                            warranty_percent = ?, service_percent = ?,
+                            instalation = ?, traning = ?, other = ?
                         WHERE category = ?;
                     """, (
                         category,
                         import_percent, margin_percent,
                         domestic_transport, default_extras,
+                        warranty_percent, service_percent,
+                        instalation, traning, other,
                         old_category
                     ))
 
@@ -541,18 +661,27 @@ def category_defaults():
                 cur.execute("""
                     INSERT INTO category_pricing_defaults (
                         category, import_percent, margin_percent,
-                        domestic_transport, default_extras
+                        domestic_transport, default_extras,
+                        warranty_percent, service_percent,
+                        instalation, traning, other
                     )
-                    VALUES (?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(category) DO UPDATE SET
                         import_percent = excluded.import_percent,
                         margin_percent = excluded.margin_percent,
                         domestic_transport = excluded.domestic_transport,
-                        default_extras = excluded.default_extras;
+                        default_extras = excluded.default_extras,
+                        warranty_percent = excluded.warranty_percent,
+                        service_percent = excluded.service_percent,
+                        instalation = excluded.instalation,
+                        traning = excluded.traning,
+                        other = excluded.other;
                 """, (
                     category,
                     import_percent, margin_percent,
-                    domestic_transport, default_extras
+                    domestic_transport, default_extras,
+                    warranty_percent, service_percent,
+                    instalation, traning, other
                 ))
                 conn.commit()
 
@@ -560,7 +689,30 @@ def category_defaults():
     defaults = cur.fetchall()
     conn.close()
 
-    return render_template("category_defaults.html", defaults=defaults)
+    return render_template("category_defaults.html", defaults=defaults, error=request.args.get("error"))
+
+@app.route("/category-defaults/delete", methods=["POST"])
+def delete_category_default():
+    cat_to_delete = request.form.get("category_to_delete")
+    if not cat_to_delete:
+        return redirect(url_for("category_defaults"))
+    
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Check if used
+    cur.execute("SELECT id FROM products WHERE category = ? LIMIT 1;", (cat_to_delete,))
+    in_use = cur.fetchone()
+
+    if in_use:
+        conn.close()
+        return redirect(url_for("category_defaults", error=f"Cannot delete category '{cat_to_delete}' because it is used by one or more products."))
+
+    cur.execute("DELETE FROM category_pricing_defaults WHERE category = ?;", (cat_to_delete,))
+    conn.commit()
+    conn.close()
+    
+    return redirect(url_for("category_defaults"))
 
 @app.route("/brands", methods=["GET", "POST"])
 def brands():
@@ -596,7 +748,30 @@ def brands():
     rows = cur.fetchall()
     conn.close()
 
-    return render_template("brands.html", brands=rows)
+    return render_template("brands.html", brands=rows, error=request.args.get("error"))
+
+@app.route("/brands/delete", methods=["POST"])
+def delete_brand():
+    brand_to_delete = request.form.get("brand_to_delete")
+    if not brand_to_delete:
+        return redirect(url_for("brands"))
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Check if used
+    cur.execute("SELECT id FROM products WHERE brand = ? LIMIT 1;", (brand_to_delete,))
+    in_use = cur.fetchone()
+
+    if in_use:
+        conn.close()
+        return redirect(url_for("brands", error=f"Cannot delete brand '{brand_to_delete}' because it is used by one or more products."))
+
+    cur.execute("DELETE FROM brands WHERE name = ?;", (brand_to_delete,))
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("brands"))
 
 # ---------- PRICES ----------
 
@@ -640,6 +815,11 @@ def new_price(product_id):
         "margin_percent": 0.0,
         "domestic_transport": 0.0,
         "default_extras": 0.0,
+        "warranty_percent": 0.0,
+        "service_percent": 0.0,
+        "instalation": 0.0,
+        "traning": 0.0,
+        "other": 0.0,
     }
     if product["category"]:
         cur.execute("""
@@ -653,6 +833,11 @@ def new_price(product_id):
                 "margin_percent": row["margin_percent"],
                 "domestic_transport": row["domestic_transport"],
                 "default_extras": row["default_extras"],
+                "warranty_percent": row["warranty_percent"] or 0,
+                "service_percent": row["service_percent"] or 0,
+                "instalation": row["instalation"] or 0,
+                "traning": row["traning"] or 0,
+                "other": row["other"] or 0,
             }
 
     if request.method == "POST":
@@ -663,11 +848,22 @@ def new_price(product_id):
         # User inputs percent as e.g. 7 (for 7%), we convert to 0.07
         import_percent_input = float(request.form.get("import_percent") or 0)
         margin_percent_input = float(request.form.get("margin_percent") or 0)
+        
+        warranty_percent_input = float(request.form.get("warranty_percent") or 0)
+        service_percent_input = float(request.form.get("service_percent") or 0)
 
         import_percent = import_percent_input / 100.0
         margin_percent = margin_percent_input / 100.0
+        warranty_percent = warranty_percent_input / 100.0
+        service_percent = service_percent_input / 100.0
 
         domestic_transport = float(request.form.get("domestic_transport") or 0)
+        
+        # New absolute costs
+        instalation = float(request.form.get("instalation") or 0)
+        traning = float(request.form.get("traning") or 0)
+        other = float(request.form.get("other") or 0)
+
         final_price = float(request.form.get("final_price") or 0)
 
         # Discount inputs:
@@ -678,15 +874,16 @@ def new_price(product_id):
 
         base_total = base_price + extras
 
-        # Cost total uses import + domestic transport
-        cost_total = base_total * (1 + import_percent) + domestic_transport
+        # Cost total uses import + domestic transport + warranty + service + absolute costs
+        # Formula: base_total * (1 + import + warranty + service) + domestic + install + training + other
+        cost_total = base_total * (1 + import_percent + warranty_percent + service_percent) + domestic_transport + instalation + traning + other
 
-        # Calculated price matches your Excel:
-        # = (base + extras) * (1 + margin) + domestic transport
-        calculated_price = base_total * (1 + margin_percent) + domestic_transport
+        # Calculated price: cost_total * (1 + margin)
+        calculated_price = cost_total * (1 + margin_percent)
 
         if final_price <= 0:
-            final_price = calculated_price  # fallback
+
+            final_price = apply_rounding(calculated_price)  # fallback logic with rounding
 
         profit_final = final_price - cost_total
 
@@ -713,32 +910,20 @@ def new_price(product_id):
                 product_id, date,
                 base_price, extras,
                 import_percent, margin_percent,
-                domestic_transport,
+                warranty_percent, service_percent,
+                domestic_transport, instalation, traning, other,
                 base_total, cost_total,
                 calculated_price, final_price,
                 profit_final,
                 discount_percent, discount_price, profit_discount
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(product_id, date) DO UPDATE SET
-                base_price = excluded.base_price,
-                extras = excluded.extras,
-                import_percent = excluded.import_percent,
-                margin_percent = excluded.margin_percent,
-                domestic_transport = excluded.domestic_transport,
-                base_total = excluded.base_total,
-                cost_total = excluded.cost_total,
-                calculated_price = excluded.calculated_price,
-                final_price = excluded.final_price,
-                profit_final = excluded.profit_final,
-                discount_percent = excluded.discount_percent,
-                discount_price = excluded.discount_price,
-                profit_discount = excluded.profit_discount;
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """, (
             product_id, date_str,
             base_price, extras,
             import_percent, margin_percent,
-            domestic_transport,
+            warranty_percent, service_percent,
+            domestic_transport, instalation, traning, other,
             base_total, cost_total,
             calculated_price, final_price,
             profit_final,
@@ -759,6 +944,11 @@ def new_price(product_id):
             "margin_percent": defaults["margin_percent"] * 100,
             "domestic_transport": defaults["domestic_transport"],
             "extras": defaults["default_extras"],
+            "warranty_percent": (defaults.get("warranty_percent") or 0) * 100,
+            "service_percent": (defaults.get("service_percent") or 0) * 100,
+            "instalation": defaults.get("instalation") or 0,
+            "traning": defaults.get("traning") or 0,
+            "other": defaults.get("other") or 0,
         },
         today=date.today().isoformat(),
         price=None
@@ -790,11 +980,22 @@ def edit_price(product_id, price_id):
 
         import_percent_input = float(request.form.get("import_percent") or 0)
         margin_percent_input = float(request.form.get("margin_percent") or 0)
+        
+        warranty_percent_input = float(request.form.get("warranty_percent") or 0)
+        service_percent_input = float(request.form.get("service_percent") or 0)
 
         import_percent = import_percent_input / 100.0
         margin_percent = margin_percent_input / 100.0
+        warranty_percent = warranty_percent_input / 100.0
+        service_percent = service_percent_input / 100.0
 
         domestic_transport = float(request.form.get("domestic_transport") or 0)
+        
+        # New absolute costs
+        instalation = float(request.form.get("instalation") or 0)
+        traning = float(request.form.get("traning") or 0)
+        other = float(request.form.get("other") or 0)
+        
         final_price = float(request.form.get("final_price") or 0)
 
         # Discount inputs
@@ -803,14 +1004,14 @@ def edit_price(product_id, price_id):
 
         base_total = base_price + extras
 
-        # Cost total (import + domestic)
-        cost_total = base_total * (1 + import_percent) + domestic_transport
+        # Formula: base_total * (1 + import + warranty + service) + domestic + install + training + other
+        cost_total = base_total * (1 + import_percent + warranty_percent + service_percent) + domestic_transport + instalation + traning + other
 
-        # Calculated price (Excel logic)
-        calculated_price = base_total * (1 + margin_percent) + domestic_transport
+        # Calculated price: cost_total * (1 + margin)
+        calculated_price = cost_total * (1 + margin_percent)
 
         if final_price <= 0:
-            final_price = calculated_price
+            final_price = apply_rounding(calculated_price)
 
         profit_final = final_price - cost_total
 
@@ -833,31 +1034,27 @@ def edit_price(product_id, price_id):
         cur.execute("""
             UPDATE prices
             SET date = ?,
-                base_price = ?,
-                extras = ?,
-                import_percent = ?,
-                margin_percent = ?,
+                base_price = ?, extras = ?,
+                import_percent = ?, margin_percent = ?,
+                warranty_percent = ?, service_percent = ?,
                 domestic_transport = ?,
-                base_total = ?,
-                cost_total = ?,
-                calculated_price = ?,
-                final_price = ?,
+                instalation = ?, traning = ?, other = ?,
+                base_total = ?, cost_total = ?,
+                calculated_price = ?, final_price = ?,
                 profit_final = ?,
-                discount_percent = ?,
-                discount_price = ?,
-                profit_discount = ?
+                discount_percent = ?, discount_price = ?, profit_discount = ?
             WHERE id = ?;
         """, (
             date_str,
             base_price, extras,
             import_percent, margin_percent,
+            warranty_percent, service_percent,
             domestic_transport,
+            instalation, traning, other,
             base_total, cost_total,
             calculated_price, final_price,
             profit_final,
-            discount_percent if discount_percent_input > 0 else None,
-            discount_price,
-            profit_discount,
+            discount_percent, discount_price, profit_discount,
             price_id
         ))
         conn.commit()
@@ -870,6 +1067,11 @@ def edit_price(product_id, price_id):
         "margin_percent": 0.0,
         "domestic_transport": 0.0,
         "default_extras": 0.0,
+        "warranty_percent": 0.0,
+        "service_percent": 0.0,
+        "instalation": 0.0,
+        "traning": 0.0,
+        "other": 0.0,
     }
     if product["category"]:
         cur.execute("""
@@ -883,6 +1085,11 @@ def edit_price(product_id, price_id):
                 "margin_percent": row["margin_percent"],
                 "domestic_transport": row["domestic_transport"],
                 "default_extras": row["default_extras"],
+                "warranty_percent": row["warranty_percent"] or 0,
+                "service_percent": row["service_percent"] or 0,
+                "instalation": row["instalation"] or 0,
+                "traning": row["traning"] or 0,
+                "other": row["other"] or 0,
             }
 
     conn.close()
@@ -894,6 +1101,11 @@ def edit_price(product_id, price_id):
             "margin_percent": defaults["margin_percent"] * 100,
             "domestic_transport": defaults["domestic_transport"],
             "extras": defaults["default_extras"],
+            "warranty_percent": (defaults.get("warranty_percent") or 0) * 100,
+            "service_percent": (defaults.get("service_percent") or 0) * 100,
+            "instalation": defaults.get("instalation") or 0,
+            "traning": defaults.get("traning") or 0,
+            "other": defaults.get("other") or 0,
         },
         today=price["date"],
         price=price
@@ -970,4 +1182,6 @@ def export_db_csv():
 
 # ---------- END ----------
 if __name__ == "__main__":
+    init_db()
+    migrate_schema()
     app.run(host="0.0.0.0", port=5000, debug=True)

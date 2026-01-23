@@ -22,5 +22,6 @@ Thumbs.db
 git_notes.txt
 
 # LOGS
-priceing.log
+pricing.log
 quotation.log
+*.log
