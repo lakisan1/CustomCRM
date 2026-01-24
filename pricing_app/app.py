@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, send_file, session
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, send_file, session, jsonify
+import requests
 import sqlite3
 import os
 import sys
@@ -355,7 +356,30 @@ def download_image_from_url(url):
         raise ValueError(f"Greška pri preuzimanju slike sa URL-a: {str(e)}")
 
 
-@app.route("/")
+def get_nbs_rate(currency="eur"):
+    """
+    Get today's middle rate for a currency from Kurs API (uses NBS data).
+    Returns float or None on error.
+    """
+    url = f"https://kurs.resenje.org/api/v1/currencies/{currency.lower()}/rates/today"
+    try:
+        resp = requests.get(url, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+        rate = data.get("exchange_middle")
+        if rate is None:
+            return None
+        return float(rate)
+    except Exception as e:
+        print(f"Error fetching {currency} rate:", e)
+        return None
+
+@app.route("/api/nbs_rate/<currency>")
+def api_nbs_rate(currency):
+    rate = get_nbs_rate(currency)
+    if rate is None:
+        return jsonify({"success": False, "message": f"Neuspešno preuzimanje kursa za {currency} sa NBS."}), 500
+    return jsonify({"success": True, "rate": rate})
 def index():
     return redirect(url_for("list_products"))
 
