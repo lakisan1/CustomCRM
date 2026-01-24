@@ -32,7 +32,16 @@ app = Flask(
 )
 app.secret_key = "crm_quotation_secret_key_change_me"
 
-# get_db is now imported from shared.db
+REQUIRED_PASSWORD = "Ponude1!"
+
+@app.before_request
+def check_auth():
+    # Exempt login page, static files, and NBS API from authentication
+    if request.endpoint in ('login', 'static', 'api_nbs_eur_rate'):
+        return None
+    
+    if not session.get('authenticated'):
+        return redirect(url_for('login'))
 
 def init_db():
     conn = get_db()
@@ -146,6 +155,22 @@ def app_asset(filename):
 @app.route("/")
 def index():
     return redirect(url_for("list_offers"))
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        if request.form.get("password") == REQUIRED_PASSWORD:
+            session['authenticated'] = True
+            return redirect(url_for('index'))
+        else:
+            error = "Pogrešna lozinka"
+    return render_template("login.html", error=error)
+
+@app.route("/logout")
+def logout():
+    session.pop('authenticated', None)
+    return redirect(url_for('login'))
 
 def get_date_format():
     """Fetch the date_format setting from global_settings table."""

@@ -34,7 +34,16 @@ app = Flask(
 )
 app.secret_key = "crm_pricing_secret_key_change_me"
 
-# get_db is now imported from shared.db
+REQUIRED_PASSWORD = "Price1!"
+
+@app.before_request
+def check_auth():
+    # Exempt login page and static files from authentication
+    if request.endpoint in ('login', 'static'):
+        return None
+    
+    if not session.get('authenticated'):
+        return redirect(url_for('login'))
 
 
 def init_db():
@@ -339,6 +348,22 @@ def download_image_from_url(url):
 @app.route("/")
 def index():
     return redirect(url_for("list_products"))
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        if request.form.get("password") == REQUIRED_PASSWORD:
+            session['authenticated'] = True
+            return redirect(url_for('index'))
+        else:
+            error = "Pogrešna lozinka"
+    return render_template("login.html", error=error)
+
+@app.route("/logout")
+def logout():
+    session.pop('authenticated', None)
+    return redirect(url_for('login'))
 
 @app.route("/product-image/<path:filename>")
 def product_image(filename):
