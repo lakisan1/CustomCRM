@@ -18,14 +18,16 @@
 
 <h3>Stavke ponude</h3>
 <table class="items-table">
-    <tr>
-        <th class="col-rb">Rb.</th>
-        <th class="col-photo">Fotografija</th>
-        <th class="col-desc">Opis</th>
-        <th class="col-qty">Kom</th>
-        <th class="col-unit">Cena/kom</th>
-        <th class="col-total">Ukupno</th>
-    </tr>
+    <thead>
+        <tr>
+            <th class="col-rb">Rb.</th>
+            <th class="col-photo">Slika</th>
+            <th class="col-desc">Opis</th>
+            <th class="col-qty">Kom</th>
+            <th class="col-unit">Cena/kom</th>
+            <th class="col-total">Ukupno</th>
+        </tr>
+    </thead>
     {% for it in items %}
     <tr>
         <td style="text-align:center;">{{ loop.index }}</td>
@@ -66,40 +68,48 @@
 <div class="no-break-block">
 
     <br>
-    <table class="totals-table" style="width:100%; font-size:12px;">
+    <table class="totals-table">
         <tr>
-            <td style="width:70%; text-align:left;">
+            <td style="width:65%; text-align:left; color: var(--text-muted); font-size: 8.5pt;">
                 Cene su u {{ offer.currency or 'EUR' }}.<br>
                 {% if offer.currency != 'RSD' and offer.exchange_rate %}
-                Obračun u RSD vrši se po kursu {{ offer.exchange_rate }} na dan izdavanja predračuna.
+                Obračun u RSD vrši se po kursu <strong>{{ offer.exchange_rate }}</strong> na dan izdavanja predračuna.
                 {% endif %}<br>
                 OPCIJA UPLATE: {{ offer.payment_terms or 'po dogovoru' }}<br>
                 ROK ISPORUKE: {{ offer.delivery_terms or 'po dogovoru' }}<br>
                 ROK VAŽENJA PONUDE: {{ offer.validity_days or 10 }} dana<br>
                 <br>
                 {% if offer.napomena %}
-                NAPOMENA: {{ offer.napomena }}<br>
+                <strong>NAPOMENA:</strong> {{ offer.napomena }}<br>
                 {% endif %}
             </td>
-            <td style="width:30%; text-align:right;">
-                SUMA:
-                {{ format_amount(offer.total_net or 0) }}<br>
-                POPUST {{ ((offer.discount_percent or 0) * 100) | round(2) }}%:
-                {{ format_amount(offer.total_discount or 0) }}<br>
-
-                <span style="display:block; border-top:1px solid #000; margin:4px 0;"></span>
-
-                UKUPNO:
-                {{ format_amount(offer.total_net_after_discount or 0) }}<br>
-                PDV {{ ((offer.vat_percent or 0) * 100) | round(2) }}%:
-                {{ format_amount(offer.total_vat or 0) }}<br>
-
-                <span style="display:block; border-top:1px solid #000; margin:4px 0;"></span>
-
-                <strong>
-                    UKUPNO ZA UPLATU:
-                    {{ format_amount(offer.total_gross or 0) }}
-                </strong>
+            <td style="width:35%; text-align:right;">
+                <table class="summary-box">
+                    <tr>
+                        <td style="text-align:right; color: var(--text-muted);">SUMA:</td>
+                        <td style="text-align:right; width: 100px;">{{ format_amount(offer.total_net or 0) }}</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:right; color: var(--text-muted);">POPUST {{ ((offer.discount_percent or 0)
+                            * 100) | round(2) }}%:</td>
+                        <td style="text-align:right;">{{ format_amount(offer.total_discount or 0) }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td style="text-align:right;">UKUPNO:</td>
+                        <td style="text-align:right;">{{ format_amount(offer.total_net_after_discount or 0) }}</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:right; color: var(--text-muted);">PDV {{ ((offer.vat_percent or 0) * 100)
+                            | round(2) }}%:</td>
+                        <td style="text-align:right;">{{ format_amount(offer.total_vat or 0) }}</td>
+                    </tr>
+                    <tr class="final-total">
+                        <td style="text-align:right; font-weight: bold;">UKUPNO ZA UPLATU:
+                        </td>
+                        <td style="text-align:right; font-weight: bold;">{{
+                            format_amount(offer.total_gross or 0) }}</td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>
