@@ -130,6 +130,51 @@ def init_db():
         );
     """)
 
+    # Offers table (referenced by indices)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS offers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            offer_number TEXT,
+            date TEXT,
+            client_name TEXT,
+            client_address TEXT,
+            client_email TEXT,
+            client_phone TEXT,
+            currency TEXT,
+            exchange_rate REAL,
+            discount_percent REAL,
+            vat_percent REAL,
+            total_net REAL,
+            total_discount REAL,
+            total_net_after_discount REAL,
+            total_vat REAL,
+            total_gross REAL,
+            payment_terms TEXT,
+            delivery_terms TEXT,
+            validity_days INTEGER,
+            notes TEXT,
+            napomena TEXT
+        );
+    """)
+
+    # Offer items table (referenced by indices)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS offer_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            offer_id INTEGER NOT NULL,
+            product_id INTEGER,
+            line_order INTEGER,
+            item_name TEXT NOT NULL,
+            item_description TEXT,
+            item_photo_path TEXT,
+            quantity REAL NOT NULL,
+            unit_price REAL NOT NULL,
+            line_net REAL NOT NULL,
+            FOREIGN KEY (offer_id) REFERENCES offers(id),
+            FOREIGN KEY (product_id) REFERENCES products(id)
+        );
+    """)
+
     # CREATE INDEX IF NOT EXISTS
     cur.execute("CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand);")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);")
@@ -183,7 +228,19 @@ def migrate_schema():
         except sqlite3.OperationalError:
             pass
 
-    # 3. Remove UNIQUE constraint from prices if present
+    # 3. Add discount columns to prices if missing (legacy)
+    discount_cols = [
+        ("discount_percent", "REAL"),
+        ("discount_price", "REAL"),
+        ("profit_discount", "REAL")
+    ]
+    for col_name, col_type in discount_cols:
+        try:
+            cur.execute(f"ALTER TABLE prices ADD COLUMN {col_name} {col_type}")
+        except sqlite3.OperationalError:
+            pass
+
+    # 4. Remove UNIQUE constraint from prices if present
     cur.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='prices'")
     row = cur.fetchone()
     # Check if constraint exists in definition
@@ -380,6 +437,7 @@ def api_nbs_rate(currency):
     if rate is None:
         return jsonify({"success": False, "message": f"Neuspešno preuzimanje kursa za {currency} sa NBS."}), 500
     return jsonify({"success": True, "rate": rate})
+@app.route("/")
 def index():
     return redirect(url_for("list_products"))
 
