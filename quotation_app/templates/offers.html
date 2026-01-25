@@ -20,8 +20,7 @@
                 <input type="text" name="search" value="{{ search_term or '' }}" onchange="this.form.submit()">
             </label>
             <button type="submit" class="btn btn-primary">Pretraga</button>
-            <a href="{{ url_for('list_offers', clear=1) }}" class="btn"
-                style="background-color: #6c757d; color: white;">Reset pretrage</a>
+            <a href="{{ url_for('list_offers', clear=1) }}" class="btn btn-secondary">Reset pretrage</a>
         </p>
     </form>
 </div>
@@ -53,8 +52,7 @@
                     <button type="submit" class="btn btn-warning btn-sm">Duplicate</button>
                 </form>
 
-                <a href="{{ url_for('offer_pdf', offer_id=o.id) }}" target="_blank" class="btn btn-primary btn-sm"
-                    style="display: inline-flex; text-decoration: none;">
+                <a href="{{ url_for('offer_pdf', offer_id=o.id) }}" target="_blank" class="btn btn-primary btn-sm">
                     PDF
                 </a>
 

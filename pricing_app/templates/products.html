@@ -34,8 +34,7 @@
                 <input type="text" name="search" value="{{ search_term or '' }}" onchange="this.form.submit()">
             </label>
             &nbsp;&nbsp;
-            <a href="{{ url_for('list_products', clear=1) }}" class="btn"
-                style="background-color: #6c757d; color: white;">Clear</a>
+            <a href="{{ url_for('list_products', clear=1) }}" class="btn btn-secondary">Clear</a>
         </p>
     </form>
 </div>

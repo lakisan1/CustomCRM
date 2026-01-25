@@ -237,15 +237,32 @@ button,
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+button:hover,
+.btn:hover {
+    text-decoration: none;
+    filter: brightness(0.9);
+}
+
 button:active,
 .btn:active {
     transform: translateY(1px);
     box-shadow: none;
+    filter: brightness(0.8);
 }
 
 .btn-sm {
     padding: 6px 12px;
     font-size: 13px;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    color: white;
 }
 
 .btn-primary {
@@ -255,7 +272,7 @@ button:active,
 
 .btn-primary:hover {
     background-color: var(--accent-primary-hover);
-    text-decoration: none;
+    color: white;
 }
 
 .btn-success {
@@ -265,7 +282,7 @@ button:active,
 
 .btn-success:hover {
     background-color: var(--accent-success-hover);
-    text-decoration: none;
+    color: white;
 }
 
 .btn-danger {
@@ -275,17 +292,17 @@ button:active,
 
 .btn-danger:hover {
     background-color: var(--accent-danger-hover);
-    text-decoration: none;
+    color: white;
 }
 
 .btn-warning {
     background-color: var(--accent-warning);
-    color: #333;
+    color: white;
 }
 
 .btn-warning:hover {
     background-color: var(--accent-warning-hover);
-    text-decoration: none;
+    color: white;
 }
 
 /* Tables */
