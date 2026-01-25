@@ -1,6 +1,7 @@
 # CustomCRM
 
 A lightweight, unified CRM system for Product Pricing and Quotation management.
+Big diference is the Photo suport in the Quotations.
 
 ## Project Structure
 
