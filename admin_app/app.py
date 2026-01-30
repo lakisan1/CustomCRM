@@ -10,7 +10,7 @@ PARENT_DIR = os.path.dirname(CURRENT_DIR)
 if PARENT_DIR not in sys.path:
     sys.path.append(PARENT_DIR)
 
-from shared.config import STATIC_DIR, DATABASE
+from shared.config import STATIC_DIR, DATABASE, APP_ASSETS_DIR
 from shared.db import get_db
 from shared.auth import check_password, set_password, get_password
 
@@ -52,28 +52,37 @@ def init_pdf_templates_table():
         );
     """)
     
+    # Try to read current filesystem templates
+    templates_dir = os.path.join(PARENT_DIR, "quotation_app", "templates")
+    css_path = os.path.join(PARENT_DIR, "static", "css", "pdf.css")
+    
+    header_html, body_html, footer_html, pdf_css = "", "", "", ""
+    try:
+        with open(os.path.join(templates_dir, "offer_header_inner.html"), "r") as f:
+            header_html = f.read()
+        with open(os.path.join(templates_dir, "offer_body_inner.html"), "r") as f:
+            body_html = f.read()
+        with open(os.path.join(templates_dir, "offer_footer_inner.html"), "r") as f:
+            footer_html = f.read()
+        with open(css_path, "r") as f:
+            pdf_css = f.read()
+    except Exception as e:
+        print(f"Warning: Could not read templates from filesystem: {e}")
+
+    # Initialize or Update 'System Default' (Read-only)
     cur.execute("SELECT id FROM pdf_templates WHERE name = 'System Default';")
-    if not cur.fetchone():
-        # Try to read current filesystem templates
-        templates_dir = os.path.join(PARENT_DIR, "quotation_app", "templates")
-        css_path = os.path.join(PARENT_DIR, "static", "css", "pdf.css")
-        
-        try:
-            with open(os.path.join(templates_dir, "offer_header_inner.html"), "r") as f:
-                header_html = f.read()
-            with open(os.path.join(templates_dir, "offer_body_inner.html"), "r") as f:
-                body_html = f.read()
-            with open(os.path.join(templates_dir, "offer_footer_inner.html"), "r") as f:
-                footer_html = f.read()
-            with open(css_path, "r") as f:
-                pdf_css = f.read()
-                
-            cur.execute("""
-                INSERT INTO pdf_templates (name, header_html, body_html, footer_html, css, is_readonly)
-                VALUES (?, ?, ?, ?, ?, 1);
-            """, ("System Default", header_html, body_html, footer_html, pdf_css))
-        except Exception as e:
-            print(f"Warning: Could not initialize System Default template from filesystem: {e}")
+    row = cur.fetchone()
+    if not row:
+        cur.execute("""
+            INSERT INTO pdf_templates (name, header_html, body_html, footer_html, css, is_readonly)
+            VALUES (?, ?, ?, ?, ?, 1);
+        """, ("System Default", header_html, body_html, footer_html, pdf_css))
+    else:
+        cur.execute("""
+            UPDATE pdf_templates 
+            SET header_html=?, body_html=?, footer_html=?, css=?
+            WHERE name='System Default';
+        """, (header_html, body_html, footer_html, pdf_css))
 
     # Ensure active_pdf_template_id exists
     cur.execute("SELECT key FROM global_settings WHERE key = 'active_pdf_template_id';")
@@ -270,7 +279,13 @@ def upload_logo():
         target_path = os.path.join(target_dir, "logo_company.jpg")
         
         try:
+            # Save to static/img/logo_company.jpg
             f.save(target_path)
+            
+            # ALSO Save to app_assets/logo_company.jpg (which PDF template uses)
+            asset_path = os.path.join(APP_ASSETS_DIR, "logo_company.jpg")
+            shutil.copy2(target_path, asset_path)
+            
             flash("Logo updated successfully.", "success")
         except Exception as e:
             flash(f"Error saving logo: {e}", "error")
