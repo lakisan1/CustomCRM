@@ -37,8 +37,55 @@ def init_presets_table():
     conn.commit()
     conn.close()
 
-# Initialize DB table on module load (or could be on first request)
+def init_pdf_templates_table():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pdf_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            header_html TEXT,
+            body_html TEXT,
+            footer_html TEXT,
+            css TEXT,
+            is_readonly INTEGER DEFAULT 0
+        );
+    """)
+    
+    cur.execute("SELECT id FROM pdf_templates WHERE name = 'System Default';")
+    if not cur.fetchone():
+        # Try to read current filesystem templates
+        templates_dir = os.path.join(PARENT_DIR, "quotation_app", "templates")
+        css_path = os.path.join(PARENT_DIR, "static", "css", "pdf.css")
+        
+        try:
+            with open(os.path.join(templates_dir, "offer_header_inner.html"), "r") as f:
+                header_html = f.read()
+            with open(os.path.join(templates_dir, "offer_body_inner.html"), "r") as f:
+                body_html = f.read()
+            with open(os.path.join(templates_dir, "offer_footer_inner.html"), "r") as f:
+                footer_html = f.read()
+            with open(css_path, "r") as f:
+                pdf_css = f.read()
+                
+            cur.execute("""
+                INSERT INTO pdf_templates (name, header_html, body_html, footer_html, css, is_readonly)
+                VALUES (?, ?, ?, ?, ?, 1);
+            """, ("System Default", header_html, body_html, footer_html, pdf_css))
+        except Exception as e:
+            print(f"Warning: Could not initialize System Default template from filesystem: {e}")
+
+    # Ensure active_pdf_template_id exists
+    cur.execute("SELECT key FROM global_settings WHERE key = 'active_pdf_template_id';")
+    if not cur.fetchone():
+        cur.execute("INSERT INTO global_settings (key, value) VALUES ('active_pdf_template_id', '0');")
+        
+    conn.commit()
+    conn.close()
+
+# Initialize DB tables
 init_presets_table()
+init_pdf_templates_table()
 
 @app.before_request
 def check_auth():
@@ -282,6 +329,118 @@ def backup_db():
         as_attachment=True,
         download_name=f"full_backup_{date_str}.db"
     )
+
+@app.route("/pdf_templates")
+def list_pdf_templates():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM pdf_templates ORDER BY id ASC;")
+    templates = cur.fetchall()
+    
+    cur.execute("SELECT value FROM global_settings WHERE key = 'active_pdf_template_id';")
+    row = cur.fetchone()
+    active_id = int(row["value"]) if row else 0
+    
+    conn.close()
+    return render_template("pdf_templates.html", templates=templates, active_id=active_id)
+
+@app.route("/add_pdf_template", methods=["POST"])
+def add_pdf_template():
+    name = request.form.get("name", "New Template")
+    source_id = request.form.get("source_id") # Clone from existing
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    header, body, footer, css = "", "", "", ""
+    if source_id:
+        cur.execute("SELECT * FROM pdf_templates WHERE id = ?;", (source_id,))
+        src = cur.fetchone()
+        if src:
+            header, body, footer, css = src["header_html"], src["body_html"], src["footer_html"], src["css"]
+            
+    cur.execute("""
+        INSERT INTO pdf_templates (name, header_html, body_html, footer_html, css, is_readonly)
+        VALUES (?, ?, ?, ?, ?, 0);
+    """, (name, header, body, footer, css))
+    new_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    
+    flash("Template created.", "success")
+    return redirect(url_for("edit_pdf_template", template_id=new_id))
+
+@app.route("/edit_pdf_template/<int:template_id>", methods=["GET", "POST"])
+def edit_pdf_template(template_id):
+    conn = get_db()
+    cur = conn.cursor()
+    
+    if request.method == "POST":
+        name = request.form.get("name")
+        header = request.form.get("header_html")
+        body = request.form.get("body_html")
+        footer = request.form.get("footer_html")
+        css = request.form.get("css")
+        
+        cur.execute("SELECT is_readonly FROM pdf_templates WHERE id = ?;", (template_id,))
+        row = cur.fetchone()
+        if row and row["is_readonly"]:
+            flash("System template is read-only.", "error")
+        else:
+            cur.execute("""
+                UPDATE pdf_templates 
+                SET name=?, header_html=?, body_html=?, footer_html=?, css=?
+                WHERE id=?;
+            """, (name, header, body, footer, css, template_id))
+            conn.commit()
+            flash("Template updated.", "success")
+            
+    cur.execute("SELECT * FROM pdf_templates WHERE id = ?;", (template_id,))
+    template = cur.fetchone()
+    
+    # For preview testing: get all quotations
+    cur.execute("SELECT id, client_name, offer_number FROM offers ORDER BY date DESC, id DESC;")
+    offers = cur.fetchall()
+    
+    conn.close()
+    if not template:
+        return "Template not found", 404
+        
+    return render_template("pdf_template_edit.html", template=template, offers=offers)
+
+@app.route("/delete_pdf_template", methods=["POST"])
+def delete_pdf_template():
+    tpl_id = request.form.get("template_id")
+    conn = get_db()
+    cur = conn.cursor()
+    
+    cur.execute("SELECT is_readonly FROM pdf_templates WHERE id = ?;", (tpl_id,))
+    row = cur.fetchone()
+    if row and row["is_readonly"]:
+        flash("Cannot delete system template.", "error")
+    else:
+        cur.execute("DELETE FROM pdf_templates WHERE id = ?;", (tpl_id,))
+        # If it was active, reset to 0
+        cur.execute("SELECT value FROM global_settings WHERE key = 'active_pdf_template_id';")
+        r = cur.fetchone()
+        if r and r["value"] == str(tpl_id):
+            cur.execute("UPDATE global_settings SET value = '0' WHERE key = 'active_pdf_template_id';")
+        conn.commit()
+        flash("Template deleted.", "success")
+        
+    conn.close()
+    return redirect(url_for("list_pdf_templates"))
+
+@app.route("/set_active_pdf_template", methods=["POST"])
+def set_active_pdf_template():
+    tpl_id = request.form.get("template_id")
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE global_settings SET value = ? WHERE key = 'active_pdf_template_id';", (tpl_id,))
+    conn.commit()
+    conn.close()
+    flash("Active template updated.", "success")
+    return redirect(url_for("list_pdf_templates"))
 
 @app.route("/restore_db", methods=["POST"])
 def restore_db():

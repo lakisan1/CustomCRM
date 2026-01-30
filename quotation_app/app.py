@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, send_file, jsonify, session
+from flask import Flask, render_template, render_template_string, request, redirect, url_for, send_from_directory, send_file, jsonify, session
 import sqlite3
 import os
 import sys
@@ -839,7 +839,6 @@ def offer_pdf(offer_id):
         ORDER BY line_order, id
     """, (offer_id,))
     items = cur.fetchall()
-    conn.close()
 
     # ---- Build file:// URIs for product images ----
     items_for_pdf = []
@@ -856,6 +855,25 @@ def offer_pdf(offer_id):
             d["item_photo_uri"] = None
         items_for_pdf.append(d)
 
+    # ---- Template Selection ----
+    preview_tpl_id = request.args.get("preview_template_id")
+    active_tpl_id = 0
+    
+    if preview_tpl_id:
+        active_tpl_id = int(preview_tpl_id)
+    else:
+        # Get active template from global_settings
+        cur.execute("SELECT value FROM global_settings WHERE key = 'active_pdf_template_id';")
+        row = cur.fetchone()
+        active_tpl_id = int(row["value"]) if row else 0
+
+    custom_tpl = None
+    if active_tpl_id > 0:
+        cur.execute("SELECT * FROM pdf_templates WHERE id = ?;", (active_tpl_id,))
+        custom_tpl = cur.fetchone()
+
+    conn.close()
+
     # ---- Logo URI ----
     logo_path = os.path.join(APP_ASSETS_DIR, "logo_company.jpg")
     logo_uri = Path(logo_path).as_uri()
@@ -864,21 +882,51 @@ def offer_pdf(offer_id):
     rig_path = os.path.join(APP_ASSETS_DIR, "RIG.png")
     rig_uri = Path(rig_path).as_uri()
 
-    # Render HTML (note: we pass items_for_pdf, logo_uri, rig_uri, pdf_mode=True)
-    html_string = render_template(
-        "pdf_offer.html",
-        offer=offer,
-        items=items_for_pdf,
-        pdf_mode=True,
-        logo_uri=logo_uri,
-        rig_uri=rig_uri,
-    )
+    # Context for rendering
+    ctx = {
+        "offer": offer,
+        "items": items_for_pdf,
+        "pdf_mode": True,
+        "logo_uri": logo_uri,
+        "rig_uri": rig_uri,
+        "format_amount": globals().get('format_amount'), # Make sure these are available
+        "format_date": globals().get('format_date')
+    }
+    # Actually these are already in app.jinja_env.globals if registered
+    # but for render_template_string we might need to be explicit or it uses the current app context.
 
-    pdf_css_path = os.path.join(BASE_DIR, "static", "css", "pdf.css")
-
-    pdf_bytes = HTML(string=html_string).write_pdf(
-        stylesheets=[CSS(filename=pdf_css_path)]
-    )
+    if custom_tpl:
+        # Render parts from DB
+        header_html = render_template_string(custom_tpl["header_html"], **ctx)
+        body_html = render_template_string(custom_tpl["body_html"], **ctx)
+        footer_html = render_template_string(custom_tpl["footer_html"], **ctx)
+        custom_css = custom_tpl["css"]
+        
+        # We still use a basic wrapper to position header/footer running elements
+        html_string = f"""
+        <!doctype html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body>
+            <div class="pdf-footer">{footer_html}</div>
+            <div class="pdf-header">{header_html}</div>
+            <div class="page-content">{body_html}</div>
+        </body>
+        </html>
+        """
+        pdf_bytes = HTML(string=html_string).write_pdf(
+            stylesheets=[CSS(string=custom_css)]
+        )
+    else:
+        # Fallback to filesystem
+        html_string = render_template(
+            "pdf_offer.html",
+            **ctx
+        )
+        pdf_css_path = os.path.join(BASE_DIR, "static", "css", "pdf.css")
+        pdf_bytes = HTML(string=html_string).write_pdf(
+            stylesheets=[CSS(filename=pdf_css_path)]
+        )
 
     num = offer["offer_number"] or offer["id"]
     filename = f"Ponuda_{num}.pdf"
