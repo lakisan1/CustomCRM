@@ -23,6 +23,7 @@ if PARENT_DIR not in sys.path:
 
 from shared.config import BASE_DIR, APP_DATA_DIR, DATABASE, IMAGE_DIR, STATIC_DIR
 from shared.db import get_db
+from shared.auth import check_password
 
 # import common_utils (it's in PARENT_DIR)
 # we already added PARENT_DIR to sys.path above
@@ -35,8 +36,6 @@ app = Flask(
 )
 app.secret_key = "crm_pricing_secret_key_change_me"
 app.config['SESSION_COOKIE_NAME'] = 'pricing_session'
-
-REQUIRED_PASSWORD = "Price1!"
 
 @app.before_request
 def check_auth():
@@ -445,7 +444,7 @@ def index():
 def login():
     error = None
     if request.method == "POST":
-        if request.form.get("password") == REQUIRED_PASSWORD:
+        if check_password("pricing", request.form.get("password")):
             session['authenticated'] = True
             return redirect(url_for('index'))
         else:
@@ -598,6 +597,225 @@ def list_products():
         category_options=category_options,
         search_term=search_term,
     )
+@app.route("/products/quick_update")
+def quick_update_products():
+    # Check if we should clear filters
+    if request.args.get("clear"):
+        session.pop("products_filter_brand", None)
+        session.pop("products_filter_category", None)
+        session.pop("products_filter_search", None)
+        return redirect(url_for("quick_update_products"))
+
+    # Load from request or fallback to session
+    brand_filter = request.args.get("brand")
+    if brand_filter is None:
+        brand_filter = session.get("products_filter_brand", "")
+    else:
+        session["products_filter_brand"] = brand_filter
+
+    category_filter = request.args.get("category")
+    if category_filter is None:
+        category_filter = session.get("products_filter_category", "")
+    else:
+        session["products_filter_category"] = category_filter
+
+    search_term = request.args.get("search")
+    if search_term is None:
+        search_term = session.get("products_filter_search", "")
+    else:
+        session["products_filter_search"] = search_term
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Base query: products + latest base_price + latest extras + current prices
+    query = """
+        SELECT p.*,
+               pr.base_price AS latest_base_price,
+               pr.extras AS latest_extras,
+               pr.final_price AS current_price,
+               pr.discount_price AS current_discount_price
+        FROM products p
+        LEFT JOIN prices pr
+          ON pr.id = (
+              SELECT MAX(id) FROM prices WHERE product_id = p.id
+          )
+    """
+    params = []
+
+    where_clauses = []
+    if brand_filter:
+        where_clauses.append("p.brand = ?")
+        params.append(brand_filter)
+    if category_filter:
+        where_clauses.append("p.category = ?")
+        params.append(category_filter)
+    if search_term:
+        where_clauses.append("p.name LIKE ?")
+        params.append(f"%{search_term}%")
+
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+
+    query += " ORDER BY p.name, p.category;"
+
+    cur.execute(query, params)
+    products = cur.fetchall()
+
+    # Distinct brands for dropdown
+    cur.execute("""
+        SELECT DISTINCT brand
+        FROM products
+        WHERE brand IS NOT NULL AND brand != ''
+        ORDER BY brand;
+    """)
+    brand_rows = cur.fetchall()
+    brand_options = [row["brand"] for row in brand_rows]
+
+    # Categories for dropdown (from category defaults)
+    cur.execute("""
+        SELECT category
+        FROM category_pricing_defaults
+        ORDER BY category;
+    """)
+    cat_rows = cur.fetchall()
+    category_options = [row["category"] for row in cat_rows]
+
+    conn.close()
+
+    return render_template(
+        "quick_update.html",
+        products=products,
+        brand_filter=brand_filter,
+        category_filter=category_filter,
+        brand_options=brand_options,
+        category_options=category_options,
+        search_term=search_term,
+    )
+
+@app.route("/products/<int:product_id>/quick_update_save", methods=["POST"])
+def quick_update_save(product_id):
+    if request.method != "POST":
+        return redirect(url_for("quick_update_products"))
+        
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # 1. Get new inputs
+    new_base_price = float(request.form.get("base_price") or 0)
+    new_extras = float(request.form.get("extras") or 0)
+    
+    # 2. Get existing latest price for coefficients
+    cur.execute("SELECT * FROM prices WHERE product_id = ? ORDER BY date DESC, id DESC LIMIT 1;", (product_id,))
+    latest_price = cur.fetchone()
+    
+    # Defaults
+    import_percent = 0.0
+    margin_percent = 0.0
+    warranty_percent = 0.0
+    service_percent = 0.0
+    domestic_transport = 0.0
+    instalation = 0.0
+    traning = 0.0
+    other = 0.0
+    
+    if latest_price:
+        import_percent = latest_price["import_percent"] or 0
+        margin_percent = latest_price["margin_percent"] or 0
+        warranty_percent = latest_price["warranty_percent"] or 0
+        service_percent = latest_price["service_percent"] or 0
+        domestic_transport = latest_price["domestic_transport"] or 0
+        instalation = latest_price["instalation"] or 0
+        traning = latest_price["traning"] or 0
+        other = latest_price["other"] or 0
+    else:
+        # Fallback to category defaults if no price history
+        cur.execute("SELECT category FROM products WHERE id=?", (product_id,))
+        prod = cur.fetchone()
+        if prod and prod["category"]:
+            cur.execute("SELECT * FROM category_pricing_defaults WHERE category=?", (prod["category"],))
+            cat_def = cur.fetchone()
+            if cat_def:
+                import_percent = cat_def["import_percent"] or 0
+                margin_percent = cat_def["margin_percent"] or 0
+                warranty_percent = cat_def["warranty_percent"] or 0
+                service_percent = cat_def["service_percent"] or 0
+                domestic_transport = cat_def["domestic_transport"] or 0
+                instalation = cat_def["instalation"] or 0
+                traning = cat_def["traning"] or 0
+                other = cat_def["other"] or 0
+
+    # 3. Calculate new totals
+    base_total = new_base_price + new_extras
+    cost_total = base_total * (1 + import_percent + warranty_percent + service_percent) + domestic_transport + instalation + traning + other
+    calculated_price = cost_total * (1 + margin_percent)
+    final_price = apply_rounding(calculated_price)
+    profit_final = final_price - cost_total
+    
+    # 4. Insert new price
+    # Copy existing discount logic
+    discount_percent = 0.0
+    discount_price = None
+    profit_discount = None
+    
+    if latest_price:
+        discount_percent = latest_price["discount_percent"] or 0.0
+        # If there was a discount, re-apply it
+        if discount_percent > 0:
+            # If percentage based, recalculate absolute price
+            if final_price > 0:
+                discount_price = final_price * (1 - discount_percent)
+                # If the previous discount price was explicitly set (nice number) and matches the perecent, 
+                # we might lose the "nice number" property if we just calc by percent.
+                # However, since base price changed, the "nice number" would likely be wrong anyway.
+                # So re-calculating by percent is the safer bet for "keeping the same discount level".
+        elif latest_price["discount_price"]:
+             # If it was a fixed price discount (no percent?), just copy it? 
+             # Or is it safer to ignore fixed prices if base changed?
+             # Let's assume if percent is 0 but discount_price > 0, it's a fixed override. 
+             # We should probably keep the same *margin* of discount?
+             # For now, let's just keep the percent logic as it's the most robust.
+             pass
+
+    if discount_price is not None:
+         profit_discount = discount_price - cost_total      
+    
+    date_str = date.today().isoformat()
+    
+    cur.execute("""
+        INSERT INTO prices (
+            product_id, date,
+            base_price, extras,
+            import_percent, margin_percent,
+            warranty_percent, service_percent,
+            domestic_transport, instalation, traning, other,
+            base_total, cost_total,
+            calculated_price, final_price,
+            profit_final,
+            discount_percent, discount_price, profit_discount
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    """, (
+        product_id, date_str,
+        new_base_price, new_extras,
+        import_percent, margin_percent,
+        warranty_percent, service_percent,
+        domestic_transport, instalation, traning, other,
+        base_total, cost_total,
+        calculated_price, final_price,
+        profit_final,
+        discount_percent, discount_price, profit_discount
+    ))
+    
+    conn.commit()
+    conn.close()
+    
+    # 5. Redirect back with filters
+    ref_brand = request.form.get("ref_brand", "")
+    ref_category = request.form.get("ref_category", "")
+    ref_search = request.form.get("ref_search", "")
+    
+    return redirect(url_for("quick_update_products", brand=ref_brand, category=ref_category, search=ref_search))
 
 @app.route("/products/add", methods=["GET", "POST"])
 def add_product():
@@ -1350,54 +1568,6 @@ def delete_price(product_id, price_id):
     conn.close()
 
     return redirect(url_for("price_history", product_id=product_id))
-# ---------- DB Export to CSV ----------
-@app.route("/export_db_csv")
-def export_db_csv():
-    """
-    Export all non-internal SQLite tables as CSV files
-    inside a single ZIP, and download it.
-    """
-    conn = get_db()
-    cur = conn.cursor()
-
-    # Get list of tables (skip internal sqlite_%)
-    cur.execute("""
-        SELECT name
-        FROM sqlite_master
-        WHERE type='table'
-          AND name NOT LIKE 'sqlite_%'
-        ORDER BY name;
-    """)
-    table_rows = cur.fetchall()
-
-    mem_zip = io.BytesIO()
-
-    with zipfile.ZipFile(mem_zip, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for row in table_rows:
-            table_name = row["name"]
-
-            # Dump table to CSV string
-            cur.execute(f"SELECT * FROM {table_name};")
-            rows = cur.fetchall()
-            cols = [desc[0] for desc in cur.description]
-
-            csv_buf = io.StringIO()
-            writer = csv.writer(csv_buf)
-            writer.writerow(cols)
-            for r in rows:
-                writer.writerow([r[col] for col in cols])
-
-            zf.writestr(f"{table_name}.csv", csv_buf.getvalue())
-
-    conn.close()
-
-    mem_zip.seek(0)
-    return send_file(
-        mem_zip,
-        mimetype="application/zip",
-        as_attachment=True,
-        download_name="pricing_db_export.zip"
-    )
 
 # ---------- END ----------
 if __name__ == "__main__":

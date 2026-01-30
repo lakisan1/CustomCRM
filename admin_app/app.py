@@ -1,0 +1,312 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+import os
+import sys
+import time
+import shutil
+
+# Ensure we can import 'shared' from parent dir
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(CURRENT_DIR)
+if PARENT_DIR not in sys.path:
+    sys.path.append(PARENT_DIR)
+
+from shared.config import STATIC_DIR, DATABASE
+from shared.db import get_db
+from shared.auth import check_password, set_password, get_password
+
+app = Flask(
+    __name__,
+    static_folder=STATIC_DIR,
+    static_url_path="/static"
+)
+app.secret_key = "crm_admin_secret_key_change_me"
+app.config['SESSION_COOKIE_NAME'] = 'admin_session'
+
+def init_presets_table():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS text_presets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            category TEXT NOT NULL, -- 'delivery', 'note', 'extra'
+            name TEXT NOT NULL,
+            content TEXT,
+            is_default INTEGER DEFAULT 0
+        );
+    """)
+    conn.commit()
+    conn.close()
+
+# Initialize DB table on module load (or could be on first request)
+init_presets_table()
+
+@app.before_request
+def check_auth():
+    if request.endpoint in ('login', 'static'):
+        return None
+    if not session.get('admin_authenticated'):
+        return redirect(url_for('login'))
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        pwd = request.form.get("password")
+        # Check against 'admin' password
+        if check_password("admin", pwd):
+            session['admin_authenticated'] = True
+            return redirect(url_for('index'))
+        else:
+            error = "Invalid Admin Password"
+    return render_template("admin_login.html", error=error)
+
+@app.route("/logout")
+def logout():
+    session.pop('admin_authenticated', None)
+    return redirect(url_for('login'))
+
+@app.route("/")
+def index():
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Get current settings
+    cur.execute("SELECT value FROM global_settings WHERE key = 'date_format';")
+    row = cur.fetchone()
+    current_date_format = row["value"] if row else "YYYY-MM-DD"
+
+    cur.execute("SELECT value FROM global_settings WHERE key = 'theme';")
+    row = cur.fetchone()
+    current_theme = row["value"] if row else "dark"
+    
+    cur.execute("SELECT value FROM global_settings WHERE key = 'allow_duplicate_names';")
+    row = cur.fetchone()
+    allow_duplicate_names = row["value"] if row else "false"
+    
+    # Fetch all presets and group by category
+    cur.execute("SELECT * FROM text_presets ORDER BY name ASC;")
+    all_presets = cur.fetchall()
+    presets_by_cat = {'delivery': [], 'note': [], 'extra': []}
+    for p in all_presets:
+        if p['category'] in presets_by_cat:
+            presets_by_cat[p['category']].append(p)
+
+    conn.close()
+
+    return render_template(
+        "admin_dashboard.html",
+        current_date_format=current_date_format,
+        current_theme=current_theme,
+        allow_duplicate_names=allow_duplicate_names,
+        presets_by_cat=presets_by_cat,
+        timestamp=int(time.time()),
+        theme=current_theme
+    )
+
+@app.route("/add_preset", methods=["POST"])
+def add_preset():
+    category = request.form.get("category")
+    name = request.form.get("name")
+    content = request.form.get("content")
+    is_default = 1 if request.form.get("is_default") else 0
+
+    if not category or not name:
+        flash("Category and Name are required.", "error")
+        return redirect(url_for("index"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    
+    if is_default:
+        # Unset other defaults in same category
+        cur.execute("UPDATE text_presets SET is_default = 0 WHERE category = ?;", (category,))
+    
+    cur.execute("""
+        INSERT INTO text_presets (category, name, content, is_default)
+        VALUES (?, ?, ?, ?);
+    """, (category, name, content, is_default))
+    
+    conn.commit()
+    conn.close()
+    
+    flash("Preset added successfully.", "success")
+    return redirect(url_for("index"))
+
+@app.route("/delete_preset", methods=["POST"])
+def delete_preset():
+    preset_id = request.form.get("preset_id")
+    if not preset_id:
+        return redirect(url_for("index"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM text_presets WHERE id = ?;", (preset_id,))
+    conn.commit()
+    conn.close()
+    
+    flash("Preset deleted.", "success")
+    return redirect(url_for("index"))
+
+@app.route("/set_default_preset", methods=["POST"])
+def set_default_preset():
+    category = request.form.get("category")
+    preset_id = request.form.get("preset_id")
+    
+    if not category or not preset_id:
+        return redirect(url_for("index"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    # Unset others
+    cur.execute("UPDATE text_presets SET is_default = 0 WHERE category = ?;", (category,))
+    # Set this one
+    cur.execute("UPDATE text_presets SET is_default = 1 WHERE id = ?;", (preset_id,))
+    conn.commit()
+    conn.close()
+    
+    flash("Default preset updated.", "success")
+    return redirect(url_for("index"))
+
+@app.route("/update_passwords", methods=["POST"])
+def update_passwords():
+    current_admin_pass = request.form.get("current_admin_password")
+    
+    # Security check setup
+    if not check_password("admin", current_admin_pass):
+        flash("Incorrect Request: Invalid current Admin password.", "error")
+        return redirect(url_for("index"))
+
+    # Helpers to process changes
+    # Each app has new_pass and confirm_pass
+    changes = [
+        ("admin", request.form.get("new_admin_password"), request.form.get("new_admin_password_confirm")),
+        ("pricing", request.form.get("new_pricing_password"), request.form.get("new_pricing_password_confirm")),
+        ("quotation", request.form.get("new_quotation_password"), request.form.get("new_quotation_password_confirm")),
+    ]
+
+    updated_count = 0
+    
+    for app_name, new_p, confirm_p in changes:
+        if new_p: # if not empty
+            if new_p != confirm_p:
+                flash(f"Error: Passwords for {app_name} did not match.", "error")
+                return redirect(url_for("index"))
+            set_password(app_name, new_p)
+            updated_count += 1
+            
+    if updated_count > 0:
+        flash(f"Successfully updated {updated_count} password(s).", "success")
+    else:
+        flash("No password changes requested.", "success")
+        
+    return redirect(url_for("index"))
+
+@app.route("/upload_logo", methods=["POST"])
+def upload_logo():
+    current_admin_pass = request.form.get("current_admin_password")
+    
+    if not check_password("admin", current_admin_pass):
+        flash("Invalid current Admin password.", "error")
+        return redirect(url_for("index"))
+        
+    f = request.files.get("logo_file")
+    if f and f.filename:
+        # Save to static/img/logo_company.jpg (OVERWRITE)
+        # Verify extension
+        ext = os.path.splitext(f.filename)[1].lower()
+        if ext not in ['.jpg', '.jpeg', '.png']:
+            flash("Logo must be JPG or PNG.", "error")
+            return redirect(url_for("index"))
+            
+        target_dir = os.path.join(STATIC_DIR, "img")
+        os.makedirs(target_dir, exist_ok=True)
+        target_path = os.path.join(target_dir, "logo_company.jpg")
+        
+        try:
+            f.save(target_path)
+            flash("Logo updated successfully.", "success")
+        except Exception as e:
+            flash(f"Error saving logo: {e}", "error")
+    else:
+        flash("No file selected.", "error")
+
+    return redirect(url_for("index"))
+
+@app.route("/update_settings", methods=["POST"])
+def update_settings():
+    current_admin_pass = request.form.get("current_admin_password")
+    
+    if not check_password("admin", current_admin_pass):
+        flash("Invalid current Admin password.", "error")
+        return redirect(url_for("index"))
+        
+    date_fmt = request.form.get("date_format")
+    theme = request.form.get("theme")
+    allow_dup = request.form.get("allow_duplicate_names")
+    
+    conn = get_db()
+    cur = conn.cursor()
+    
+    if date_fmt:
+        cur.execute("INSERT OR REPLACE INTO global_settings (key, value) VALUES ('date_format', ?);", (date_fmt,))
+    
+    if theme:
+        cur.execute("INSERT OR REPLACE INTO global_settings (key, value) VALUES ('theme', ?);", (theme,))
+        
+    # Checkbox: if present = "true", if missing = "false"
+    allow_dup_val = "true" if allow_dup == "true" else "false"
+    cur.execute("INSERT OR REPLACE INTO global_settings (key, value) VALUES ('allow_duplicate_names', ?);", (allow_dup_val,))
+        
+    conn.commit()
+    conn.close()
+    
+    flash("Settings updated.", "success")
+    return redirect(url_for("index"))
+
+@app.route("/backup_db")
+def backup_db():
+    if not session.get('admin_authenticated'):
+        return redirect(url_for('login'))
+        
+    conn = get_db()
+    conn.close() # Ensure db is closed before reading file
+    
+    file_path = DATABASE
+    if not os.path.exists(file_path):
+        flash("Database file not found.", "error")
+        return redirect(url_for("index"))
+        
+    date_str = time.strftime("%Y-%m-%d")
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=f"full_backup_{date_str}.db"
+    )
+
+@app.route("/restore_db", methods=["POST"])
+def restore_db():
+    current_admin_pass = request.form.get("current_admin_password")
+    
+    if not check_password("admin", current_admin_pass):
+        flash("Invalid current Admin password.", "error")
+        return redirect(url_for("index"))
+        
+    f = request.files.get("db_file")
+    if f and f.filename:
+        # Basic check
+        if not f.filename.endswith(".db") and not f.filename.endswith(".sqlite"):
+            flash("Invalid file extension. Please upload a .db file.", "error")
+            return redirect(url_for("index"))
+            
+        # We need to overwrite the database file.
+        # Ensure no active connections (not 100% possible with threading but we try)
+        # In this simple app, just overwriting usually works on Linux.
+        try:
+            f.save(DATABASE)
+            flash("Database restored successfully.", "success")
+        except Exception as e:
+            flash(f"Error restoring database: {e}", "error")
+    else:
+        flash("No file selected.", "error")
+
+    return redirect(url_for("index"))

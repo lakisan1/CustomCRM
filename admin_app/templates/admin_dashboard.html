@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme|default('dark') }}">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        /* Presets Management Styles */
+        .tabs {
+            overflow: hidden;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .tab-link {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .tab-link:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .tab-link.active {
+            border-bottom: 2px solid var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeEffect 1s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeEffect {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .preset-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .preset-table th,
+        .preset-table td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+        }
+
+        .preset-table th {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-links">
+            <span style="font-weight: 600; color: var(--text-main);">Admin Panel</span>
+            <a href="/" target="_blank">View Landing Page</a>
+        </div>
+        <div class="nav-links">
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 1200px;">
+        <h1>Global Settings</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Password Management -->
+        <div class="card">
+            <h3>Change Passwords</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                Enter a new password for any app you want to change. Leave blank to keep current.
+                <br><strong>You must enter the current Admin password to apply changes.</strong>
+            </p>
+
+            <form action="{{ url_for('update_passwords') }}" method="POST">
+                <div class="grid-2-col-asymmetric" style="grid-template-columns: 1fr 1fr;">
+                    <div>
+                        <label>New Admin Password</label>
+                        <input type="password" name="new_admin_password" placeholder="Leave blank to keep unchanged">
+                        <input type="password" name="new_admin_password_confirm" placeholder="Confirm new password"
+                            style="margin-top: -10px;">
+                    </div>
+
+                    <div>
+                        <label>New Pricing App Password</label>
+                        <input type="password" name="new_pricing_password" placeholder="Leave blank to keep unchanged">
+                        <input type="password" name="new_pricing_password_confirm" placeholder="Confirm new password"
+                            style="margin-top: -10px;">
+                    </div>
+
+                    <div>
+                        <label>New Quotation App Password</label>
+                        <input type="password" name="new_quotation_password"
+                            placeholder="Leave blank to keep unchanged">
+                        <input type="password" name="new_quotation_password_confirm" placeholder="Confirm new password"
+                            style="margin-top: -10px;">
+                    </div>
+                </div>
+
+                <hr style="margin: 20px 0;">
+
+                <label style="color: var(--accent-warning);">Confirm Current Admin Password (Required)</label>
+                <input type="password" name="current_admin_password" required>
+
+                <button type="submit" class="btn btn-primary">Update Passwords</button>
+            </form>
+        </div>
+
+        <!-- Branding -->
+        <div class="card">
+            <h3>Company Branding</h3>
+            <div class="split-layout" style="grid-template-columns: 1fr 1fr;">
+                <div>
+                    <label>Current Logo</label>
+                    <div style="background: var(--bg-input); padding: 20px; text-align: center; border-radius: 8px;">
+                        <img src="{{ url_for('static', filename='img/logo_company.jpg') }}?t={{ timestamp }}" alt="Logo"
+                            style="max-height: 80px; width: auto;">
+                    </div>
+                </div>
+                <div>
+                    <form action="{{ url_for('upload_logo') }}" method="POST" enctype="multipart/form-data">
+                        <label>Upload New Logo (JPG/PNG)</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" name="logo_file" accept=".jpg,.jpeg,.png" required>
+                            <span class="file-upload-text">Click or Drop Image Here</span>
+                        </div>
+
+                        <div style="margin-top: 16px;">
+                            <label style="color: var(--accent-warning);">Confirm Current Admin Password</label>
+                            <input type="password" name="current_admin_password" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Upload Logo</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Defaults -->
+        <div class="card">
+            <h3>Default Settings</h3>
+            <form action="{{ url_for('update_settings') }}" method="POST">
+                <div class="grid-2-col-asymmetric" style="grid-template-columns: 1fr 1fr;">
+                    <div>
+                        <label>Date Format</label>
+                        <select name="date_format">
+                            <option value="DD.MM.YYYY" {% if current_date_format=='DD.MM.YYYY' %}selected{% endif %}>
+                                DD.MM.YYYY</option>
+                            <option value="YYYY-MM-DD" {% if current_date_format=='YYYY-MM-DD' %}selected{% endif %}>
+                                YYYY-MM-DD</option>
+                            <option value="MM/DD/YYYY" {% if current_date_format=='MM/DD/YYYY' %}selected{% endif %}>
+                                MM/DD/YYYY</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Theme</label>
+                        <select name="theme">
+                            <option value="dark" {% if current_theme=='dark' %}selected{% endif %}>Dark (Default)
+                            </option>
+                            <option value="light" {% if current_theme=='light' %}selected{% endif %}>Light</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="allow_duplicate_names" value="true" {% if
+                            allow_duplicate_names=='true' %}checked{% endif %}>
+                        Allow Duplicate Quotation Numbers
+                    </label>
+                    <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                        If unchecked (default), you cannot create offers with the same number/name.
+                    </small>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <label style="color: var(--accent-warning);">Confirm Current Admin Password</label>
+                    <input type="password" name="current_admin_password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+            </form>
+        </div>
+        <!-- Database Management -->
+        <div class="card">
+            <h3>Database Management</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                Backup and Restore the full database (Pricing + Quotation).
+            </p>
+
+            <div class="split-layout">
+                <!-- Backup -->
+                <div>
+                    <h4 style="margin-top: 0;">Backup</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">Download a comprehensive .db file
+                        containing all data.</p>
+                    <a href="{{ url_for('backup_db') }}" class="btn btn-primary"
+                        style="text-decoration: none; display: inline-block;">
+                        Download Full Backup
+                    </a>
+                </div>
+
+                <!-- Restore -->
+                <div>
+                    <h4 style="margin-top: 0;">Restore</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">
+                        Overwrites current data. <strong style="color: var(--accent-warning);">Irreversible!</strong>
+                    </p>
+
+                    <form action="{{ url_for('restore_db') }}" method="POST" enctype="multipart/form-data">
+                        <div class="file-upload-wrapper" style="margin-bottom: 10px;">
+                            <input type="file" name="db_file" accept=".db,.sqlite" required>
+                            <span class="file-upload-text">Select .db file</span>
+                        </div>
+
+                        <div style="margin-bottom: 10px;">
+                            <label style="color: var(--accent-warning); font-size: 0.85rem;">Admin Password
+                                Required</label>
+                            <input type="password" name="current_admin_password" required placeholder="Enter password">
+                        </div>
+
+                        <button type="submit" class="btn btn-danger"
+                            onclick="return confirm('WARNING: This will overwrite ALL data (products, prices, offers). Are you sure?');">
+                            Restore Database
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Text Presets Management -->
+        <div class="card">
+            <h3>Text Presets</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                Manage preset text for Quotation fields. Set defaults to auto-fill new offers.
+            </p>
+
+            <div class="tabs">
+                <button class="tab-link active" onclick="openTab(event, 'tab-delivery')">Delivery Terms (Uslovi
+                    isporuke)</button>
+                <button class="tab-link" onclick="openTab(event, 'tab-note')">Notes (Napomena)</button>
+                <button class="tab-link" onclick="openTab(event, 'tab-extra')">Extra Text (Dodatni tekst)</button>
+            </div>
+
+            {% for cat_key, cat_label in [('delivery', 'Uslovi isporuke'), ('note', 'Napomena'), ('extra', 'Dodatni
+            tekst')] %}
+            <div id="tab-{{ cat_key }}" class="tab-content {{ 'active' if loop.first else '' }}">
+                <h4 style="margin-top: 0;">{{ cat_label }} - Presets</h4>
+
+                <table class="preset-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">Name</th>
+                            <th style="width: 50%;">Content</th>
+                            <th style="width: 10%;">Default</th>
+                            <th style="width: 20%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set presets = presets_by_cat[cat_key] if presets_by_cat else [] %}
+                        {% if presets %}
+                        {% for p in presets %}
+                        <tr>
+                            <td><strong>{{ p.name }}</strong></td>
+                            <td><small>{{ p.content | truncate(60) }}</small></td>
+                            <td>
+                                {% if p.is_default %}
+                                <span style="color: var(--accent-success); font-weight: bold;">✓ Default</span>
+                                {% else %}
+                                <form action="{{ url_for('set_default_preset') }}" method="POST"
+                                    style="display:inline;">
+                                    <input type="hidden" name="category" value="{{ cat_key }}">
+                                    <input type="hidden" name="preset_id" value="{{ p.id }}">
+                                    <button type="submit" class="btn btn-sm btn-secondary"
+                                        style="padding: 2px 6px; font-size: 0.7rem;">Set Default</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form action="{{ url_for('delete_preset') }}" method="POST" style="display:inline;"
+                                    onsubmit="return confirm('Delete this preset?');">
+                                    <input type="hidden" name="preset_id" value="{{ p.id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-muted);">No presets found. Add
+                                one below.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+
+                <div style="background: var(--bg-input); padding: 15px; border-radius: 6px;">
+                    <h5>Add New {{ cat_label }}</h5>
+                    <form action="{{ url_for('add_preset') }}" method="POST">
+                        <input type="hidden" name="category" value="{{ cat_key }}">
+                        <div class="grid-2-col-asymmetric" style="grid-template-columns: 1fr 2fr; gap: 10px;">
+                            <div>
+                                <input type="text" name="name" placeholder="Preset Name (e.g. Standard)" required
+                                    style="width: 100%;">
+                            </div>
+                            <div>
+                                <textarea name="content" rows="2" placeholder="Content text..." required
+                                    style="width: 100%;"></textarea>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <label style="display: inline-flex; align-items: center; gap: 5px; margin-right: 15px;">
+                                <input type="checkbox" name="is_default" value="1"> Make Default
+                            </label>
+                            <button type="submit" class="btn btn-sm btn-success">Add Preset</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-link");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Generic file upload feedback for ALL file inputs
+            document.querySelectorAll('input[type="file"]').forEach(fileInput => {
+                fileInput.addEventListener('change', function (e) {
+                    const fileName = e.target.files[0]?.name;
+                    const wrapper = e.target.closest('.file-upload-wrapper');
+                    const textSpan = wrapper.querySelector('.file-upload-text');
+
+                    if (fileName && textSpan) {
+                        textSpan.textContent = "Selected: " + fileName;
+                        textSpan.style.color = "var(--accent-success)";
+                        textSpan.style.fontWeight = "600";
+                        wrapper.style.borderColor = "var(--accent-success)";
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,52 @@
+import os
+import sys
+
+# Ensure shared modules can be imported
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+if CURRENT_DIR not in sys.path:
+    sys.path.append(CURRENT_DIR)
+
+from flask import Flask, render_template
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+
+# Import the existing apps
+# Note: These imports might trigger some initialization code, which is fine.
+# We assume they have `if __name__ == "__main__":` blocks to prevent running servers.
+from pricing_app.app import app as pricing_app
+from quotation_app.app import app as quotation_app
+from admin_app.app import app as admin_app
+from shared.config import STATIC_DIR
+
+# Initialize the main landing app
+# We explicitly set static_folder to the shared one so it can serve css/js for the landing page
+# AND for the sub-apps if they generate URLs pointing to /static
+app = Flask(__name__, template_folder='templates', static_folder=STATIC_DIR, static_url_path='/static')
+
+@app.route("/")
+def index():
+    return render_template("landing.html")
+
+# Merge the applications using DispatcherMiddleware
+# Requests to /pricing/* go to pricing_app
+# Requests to /quotation/* go to quotation_app
+# Requests to /admin/* go to admin_app
+# Everything else goes to app (landing page)
+application = DispatcherMiddleware(app, {
+    '/pricing': pricing_app,
+    '/quotation': quotation_app,
+    '/admin': admin_app
+})
+
+if __name__ == "__main__":
+    from werkzeug.serving import run_simple
+    
+    # We use run_simple to run the WSGI application
+    # This replaces app.run() for the combined app
+    print("-------------------------------------------------------")
+    print("Starting Merged Link CustomCRM on port 5000")
+    print("Access at: http://localhost:5000")
+    print("-------------------------------------------------------")
+    
+    # use_reloader=True allows auto-restart on code changes (like debug=True)
+    # use_debugger=True enables the interactive debugger
+    run_simple('0.0.0.0', 5000, application, use_reloader=True, use_debugger=True, threaded=True)

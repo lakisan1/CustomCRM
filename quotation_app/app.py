@@ -20,6 +20,7 @@ if PARENT_DIR not in sys.path:
 
 from shared.config import BASE_DIR, APP_DATA_DIR, DATABASE, IMAGE_DIR, APP_ASSETS_DIR, STATIC_DIR
 from shared.db import get_db
+from shared.auth import check_password
 
 #  common_utils app import
 # it's in PARENT_DIR which is already in sys.path
@@ -32,8 +33,6 @@ app = Flask(
 )
 app.secret_key = "crm_quotation_secret_key_change_me"
 app.config['SESSION_COOKIE_NAME'] = 'quotation_session'
-
-REQUIRED_PASSWORD = "Ponude1!"
 
 @app.before_request
 def check_auth():
@@ -164,7 +163,7 @@ def index():
 def login():
     error = None
     if request.method == "POST":
-        if request.form.get("password") == REQUIRED_PASSWORD:
+        if check_password("quotation", request.form.get("password")):
             session['authenticated'] = True
             return redirect(url_for('index'))
         else:
@@ -342,6 +341,37 @@ def new_offer():
 
         conn = get_db()
         cur = conn.cursor()
+        # Validate duplicates if not allowed
+        cur.execute("SELECT value FROM global_settings WHERE key = 'allow_duplicate_names';")
+        row_dup = cur.fetchone()
+        allow_dup = row_dup["value"] == "true" if row_dup else False
+        
+        if not allow_dup:
+            cur.execute("SELECT id FROM offers WHERE offer_number = ?;", (offer_number,))
+            existing = cur.fetchone()
+            if existing:
+                conn.close()
+                # Construct a dict to preserve inputs
+                preserved_offer = {
+                    "offer_number": offer_number,
+                    "date": date_str,
+                    "client_name": client_name,
+                    "client_address": client_address,
+                    "client_email": client_email,
+                    "client_phone": client_phone,
+                    "currency": currency,
+                    "exchange_rate": exchange_rate,
+                    "discount_percent": discount_percent_input / 100.0 if discount_percent_input else None, 
+                    "vat_percent": vat_percent_input / 100.0 if vat_percent_input else None,
+                    "payment_terms": payment_terms,
+                    "delivery_terms": delivery_terms,
+                    "validity_days": validity_days,
+                    "notes": notes,
+                    "napomena": napomena
+                }
+                return render_template("offer_form.html", offer=preserved_offer, today=date.today().isoformat(), 
+                                       error="Offer number already exists (Duplicates disabled in Admin).")
+
         cur.execute("""
             INSERT INTO offers (
                 offer_number, date,
@@ -367,7 +397,41 @@ def new_offer():
         return redirect(url_for("edit_offer", offer_id=offer_id))
 
     # GET
-    return render_template("offer_form.html", offer=None, today=date.today().isoformat())
+    # Fetch default presets if they exist
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT category, content FROM text_presets WHERE is_default = 1;")
+    default_rows = cur.fetchall()
+    
+    # Fetch all presets for dropdowns
+    cur.execute("SELECT * FROM text_presets ORDER BY name ASC;")
+    all_presets = cur.fetchall()
+    presets_by_cat = {'delivery': [], 'note': [], 'extra': []}
+    for p in all_presets:
+        if p['category'] in presets_by_cat:
+            presets_by_cat[p['category']].append(p)
+    conn.close()
+
+    defaults = {r['category']: r['content'] for r in default_rows}
+    
+    # These are the default values if no preset is set to default
+    default_delivery = defaults.get('delivery', 'ROK ISPORUKE: do 45 dana po uplati AVANSA')
+    default_napomena = defaults.get('note', '')
+    default_extra = defaults.get('extra', """U cenu uredjaja uracunata je montaza, instruktaza u rukovanju i uputstva za rad na srpskom jeziku.
+Uredjaji poseduju sve potrebne ateste.
+Garantni rok 2 godine.
+Servis i rezervni delovi su obezbedjeni.
+
+ZA ISTOVAR I MONTAŽU OPREME, NEOPHODNO JE OBEZBEDITI VILJUŠKAR.
+Cena je fco KUPAC.""")
+
+    return render_template("offer_form.html", 
+                           offer=None, 
+                           today=date.today().isoformat(),
+                           default_delivery=default_delivery,
+                           default_napomena=default_napomena,
+                           default_extra=default_extra,
+                           presets_by_cat=presets_by_cat)
 
 
 def recalc_totals(offer_id):
@@ -457,6 +521,20 @@ def edit_offer(offer_id):
             validity_days = int(request.form.get("validity_days") or 10)
             notes = (request.form.get("notes") or "").strip()
             napomena = (request.form.get("napomena") or "").strip()
+
+            # Validate duplicates if not allowed
+            cur.execute("SELECT value FROM global_settings WHERE key = 'allow_duplicate_names';")
+            row_dup = cur.fetchone()
+            allow_dup = row_dup["value"] == "true" if row_dup else False
+            
+            if not allow_dup:
+                cur.execute("SELECT id FROM offers WHERE offer_number = ? AND id != ?;", (offer_number, offer_id))
+                existing = cur.fetchone()
+                if existing:
+                    conn.close()
+                    # For edit, we must use session to persist error across redirect
+                    session["error_message"] = "Duplicate Offer Number not allowed."
+                    return redirect(url_for("edit_offer", offer_id=offer_id))
 
             cur.execute("""
                 UPDATE offers
@@ -691,6 +769,14 @@ def edit_offer(offer_id):
     cat_rows = cur.fetchall()
     category_options = [row["category"] for row in cat_rows]
 
+    # Fetch presets for dropdowns
+    cur.execute("SELECT * FROM text_presets ORDER BY name ASC;")
+    all_presets = cur.fetchall()
+    presets_by_cat = {'delivery': [], 'note': [], 'extra': []}
+    for p in all_presets:
+        if p['category'] in presets_by_cat:
+            presets_by_cat[p['category']].append(p)
+
     conn.close()
     return render_template(
         "offer_form.html",
@@ -705,6 +791,7 @@ def edit_offer(offer_id):
         selected_product_id=selected_product_id,
         today=date.today().isoformat(),
         new_prod_id=new_prod_id,
+        presets_by_cat=presets_by_cat
     )
 
 @app.route("/offers/<int:offer_id>/view")
@@ -924,6 +1011,61 @@ def duplicate_offer(offer_id):
 
     # Go straight to edit screen of the new offer
     return redirect(url_for("edit_offer", offer_id=new_offer_id))
+
+@app.route("/compare")
+def compare_offers():
+    """Comparison tool - pure JS based, no DB saving."""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Build products query with latest price
+    query = """
+        SELECT 
+            p.id, 
+            p.name, 
+            p.brand, 
+            p.category, 
+            p.description,
+            p.photo_path,
+            (
+                SELECT pr.final_price 
+                FROM prices pr 
+                WHERE pr.product_id = p.id 
+                ORDER BY pr.date DESC 
+                LIMIT 1
+            ) AS latest_price
+        FROM products p
+        ORDER BY p.name;
+    """
+    cur.execute(query)
+    products = cur.fetchall()
+
+    # Brand options for dropdown
+    cur.execute("""
+        SELECT DISTINCT brand
+        FROM products
+        WHERE brand IS NOT NULL AND brand != ''
+        ORDER BY brand;
+    """)
+    brand_rows = cur.fetchall()
+    brand_options = [row["brand"] for row in brand_rows]
+
+    # Category options for dropdown
+    cur.execute("""
+        SELECT DISTINCT category
+        FROM products
+        WHERE category IS NOT NULL AND category != ''
+        ORDER BY category;
+    """)
+    cat_rows = cur.fetchall()
+    category_options = [row["category"] for row in cat_rows]
+
+    conn.close()
+    
+    return render_template("compare.html", 
+                           products=products, 
+                           brand_options=brand_options, 
+                           category_options=category_options)
 
 @app.route("/settings", methods=["GET", "POST"])
 def settings():

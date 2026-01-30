@@ -21,6 +21,8 @@
         <div class="nav-links">
             <a href="{{ url_for('list_offers') }}" {% if request.endpoint=='list_offers' %}class="active" {% endif
                 %}>Pregled ponuda</a>
+            <a href="{{ url_for('compare_offers') }}" {% if request.endpoint=='compare_offers' %}class="active" {% endif
+                %}>Uporedi ponude</a>
             <a href="{{ url_for('settings') }}" {% if request.endpoint=='settings' %}class="active" {% endif
                 %}>Settings</a>
         </div>

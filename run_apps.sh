@@ -2,12 +2,12 @@
 set -e
 
 #############################################
-# Auto-setup & run pricing + quotation apps
+# Auto-setup & run merged CustomCRM app
 # - optional: apt update + install packages
 # - create app_data + product_images
 # - create venv if missing
 # - install requirements
-# - start both apps in background
+# - start merged app in background
 #############################################
 
 # Go to the folder where this script lives (repo root)
@@ -16,7 +16,7 @@ cd "$SCRIPT_DIR"
 
 echo "Working directory: $PWD"
 
-#Pulling latest code from Git
+# Pulling latest code from Git
 echo "Pulling latest code from Git..."
 if command -v git >/dev/null 2>&1; then
   git pull
@@ -42,7 +42,7 @@ if command -v apt >/dev/null 2>&1; then
     apt install -y $PKGS
   else
     sudo apt update
-    sudo sudo apt install -y $PKGS
+    sudo apt install -y $PKGS
   fi
 else
   echo "apt not found, skipping system package installation."
@@ -76,21 +76,21 @@ source venv/bin/activate
 echo "Upgrading pip and installing requirements..."
 pip install --upgrade pip
 pip install -r requirements.txt
+# Ensure Werkzeug is installed as it's needed for dispatcher
+pip install Werkzeug
 
 #############################################
-# 4) Start both Flask apps in background
+# 4) Start Merged Flask App
 #############################################
 
 echo "Stopping any old instances (if running)..."
 pkill -f "pricing_app/app.py" || true
 pkill -f "quotation_app/app.py" || true
+pkill -f "main.py" || true
 
-echo "Starting pricing_app on port 5000..."
-nohup python3 pricing_app/app.py > /dev/null 2>&1 &
+echo "Starting merged app on port 5000..."
+# We use nohup to keep it running after shell closes
+nohup python3 main.py > main.log 2>&1 &
 
-echo "Starting quotation_app on port 5001..."
-nohup python3 quotation_app/app.py > /dev/null 2>&1 &
-
-echo "All done. Apps should now be up:"
-echo "  - Pricing app   : http://<server-ip>:5000/products"
-echo "  - Quotation app : http://<server-ip>:5001/offers"
+echo "All done. App should now be up:"
+echo "  - Custom CRM : http://localhost:5000/"

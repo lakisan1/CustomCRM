@@ -17,6 +17,8 @@
                 %}>Spisak proizvoda</a>
             <a href="{{ url_for('category_defaults') }}" {% if request.endpoint=='category_defaults' %}class="active" {%
                 endif %}>Spisak kategorija</a>
+            <a href="{{ url_for('quick_update_products') }}" {% if request.endpoint=='quick_update_products'
+                %}class="active" {% endif %}>Brzo Ažuriranje</a>
             <a href="{{ url_for('brands') }}" {% if request.endpoint=='brands' %}class="active" {% endif %}>Brand</a>
             <a href="{{ url_for('settings') }}" {% if request.endpoint=='settings' %}class="active" {% endif
                 %}>Settings</a>
