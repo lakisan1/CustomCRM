@@ -2,15 +2,15 @@
 
 A CRM system for **Product Pricing** and **Quotation Management**. Built for small teams and individuals. Easy to use and customize. 70% vibe code, 30% real code. I am a beginner so security is non-existent. **Only use in local network!**
 
-App is in extra early development!
+App is in extra early development!\
 Please open issues for any bugs or suggestions!
 
 ![Landing Page](README_Images/Main.png)
 
 ## 🌟 Key Features
 
-A lot of options to create price calculations.
-Easy to add photos to products.
+A lot of options to create price calculations.\
+Easy to add photos to products.\
 **Open source, free to use and modify as you wish. Fully local.**
 
 ### 🏷️ Pricing App
