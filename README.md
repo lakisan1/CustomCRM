@@ -13,7 +13,7 @@ Please open issues for any bugs or suggestions!
 
 ## 🌟 Key Features
 
-A lot of options to create price calculations.\
+A lot of options to create a custom sale price based on a lot of parameters.\
 Easy to add photos to products.\
 **Open source, free to use and modify as you wish. Fully local.**
 
@@ -24,13 +24,16 @@ Manage your product catalog with precision. Calculate margins, track base costs,
 
 #### ➕ Add New Products and Edit
 Seamlessly add products.
-![Add Product](README_Images/PriceApp/PriceList.png)
+![Product List](README_Images/PriceApp/PriceList.png)
+
 Easy price calculation and editing.
-![Add Product](README_Images/PriceApp/EditPrice.png)
+![Edit Price](README_Images/PriceApp/EditPrice.png)
+
 Presets from category and brand.
-![Add Product](README_Images/PriceApp/Category.png)
+![Add category](README_Images/PriceApp/Category.png)
+
 View price history.
-![Add Product](README_Images/PriceApp/PriceHistory.png)
+![Price History](README_Images/PriceApp/PriceHistory.png)
 
 ### 📄 Quotation App
 Transform prices into professional PDF offers for your clients in seconds.
@@ -63,10 +66,11 @@ Full control over your system's global settings and security.
 ![Admin Panel](README_Images/Admin/Admin1.png)
 
 #### ✏️ Edit and create PDF Templates
-Create and edit PDF templates for your quotations.\
-Needs knowledge of HTML and CSS. But it is easy to learn.\
-Test PDF template in app, no need to restart.
+Create PDF templates for your quotations.\
 ![Create PDF Templates](README_Images/Admin/PDF_Edit.png)
+
+Knowledge of HTML and CSS required. But it is easy to learn.\
+Test custom PDF templates in app, no need to restart.
 ![Edit PDF Templates](README_Images/Admin/PDF_Edit1.png)
 
 
