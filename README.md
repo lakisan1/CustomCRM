@@ -21,8 +21,9 @@ Easy to add photos to products.\
 Manage your product catalog with precision. Calculate margins, track base costs, and visualize profit with color-coded alerts.
 - **Dynamic Calculation**: Automatic rounding and margin-based pricing.
 - **Price History**: Keep track of every price change over time.
+- **Quick Price Update**: Update prices for multiple products on one page.
 
-#### ➕ Add New Products and Edit
+#### ➕ Add and edit Products and Prices
 Seamlessly add products.
 ![Product List](README_Images/PriceApp/PriceList.png)
 
@@ -34,6 +35,9 @@ Presets from category and brand.
 
 View price history.
 ![Price History](README_Images/PriceApp/PriceHistory.png)
+
+Quickly update prices by just typing the new input price and additional costs. Save and its added to price history.
+![Quick Price Update](README_Images/PriceApp/QuickPriceUpdate.png)
 
 ### 📄 Quotation App
 Transform prices into professional PDF offers for your clients in seconds.
