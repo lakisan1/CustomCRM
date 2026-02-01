@@ -5,7 +5,7 @@ A CRM system for **Product Pricing** and **Quotation Management**. Built for sma
 App is in extra early development!\
 Please open issues for any bugs or suggestions!
 
-![Landing Page](README_Images/Main.png)
+![Landing Page](README_Images/Menu/menu1.png)
 
 ## 🌟 Key Features
 
@@ -22,7 +22,7 @@ Manage your product catalog with precision. Calculate margins, track base costs,
 Seamlessly add products.
 ![Add Product](README_Images/PriceApp/PriceList.png)
 Easy price calculation and editing.
-![Add Product](README_Images/PriceApp/EditProduct.png)
+![Add Product](README_Images/PriceApp/EditPrice.png)
 Presets from category and brand.
 ![Add Product](README_Images/PriceApp/Category.png)
 View price history.
@@ -37,7 +37,7 @@ Transform prices into professional PDF offers for your clients in seconds.
 ![Quotation List](README_Images/QuotationApp/Quotation1.png)
 
 #### ✏️ Edit Quotations
-Powerful editor for adjusting offer details, adding items, and managing client info.
+Powerful editor for adjusting offer details, adding items, and managing client info.\
 Option to edit price and product name, description from quotation app.
 ![Edit Quotation](README_Images/QuotationApp/Quotation2.png)
 
@@ -59,8 +59,8 @@ Full control over your system's global settings and security.
 ![Admin Panel](README_Images/Admin/Admin1.png)
 
 #### ✏️ Edit and create PDF Templates
-Create and edit PDF templates for your quotations.
-Needs knowledge of HTML and CSS. But it is easy to learn.
+Create and edit PDF templates for your quotations.\
+Needs knowledge of HTML and CSS. But it is easy to learn.\
 Test PDF template in app, no need to restart.
 ![Create PDF Templates](README_Images/Admin/PDF_Edit.png)
 ![Edit PDF Templates](README_Images/Admin/PDF_Edit1.png)
@@ -108,7 +108,7 @@ Use these passwords to log in for the first time:
 
 ## 🗺️ Roadmap & Timeline
 
-App is in extra early development!
+App is in extra early development!\
 Please open issues for any bugs or suggestions!
 
 Updates come based on **Timeline**.
