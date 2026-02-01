@@ -3,7 +3,7 @@
 A CRM system for **Product Pricing** and **Quotation Management**.
 Built for small teams and individuals.\
 Easy to use and customize.\
-70% vibe code, 30% real code.\
+80% vibe code, 20% traditional code.\
 I am a beginner so security is non-existent. **Only use in local network!**
 
 App is in extra early development!\
