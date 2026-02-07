@@ -12,8 +12,8 @@ from werkzeug.middleware.dispatcher import DispatcherMiddleware
 # Import the existing apps
 # Note: These imports might trigger some initialization code, which is fine.
 # We assume they have `if __name__ == "__main__":` blocks to prevent running servers.
-from pricing_app.app import app as pricing_app
-from quotation_app.app import app as quotation_app
+from pricing_app.app import app as pricing_app, init_db as pricing_init_db, migrate_schema as pricing_migrate_schema
+from quotation_app.app import app as quotation_app, init_db as quotation_init_db
 from admin_app.app import app as admin_app
 from shared.config import STATIC_DIR
 
@@ -39,6 +39,12 @@ application = DispatcherMiddleware(app, {
 
 if __name__ == "__main__":
     from werkzeug.serving import run_simple
+    
+    # Run database initializations and migrations
+    print("Initializing databases...")
+    pricing_init_db()
+    pricing_migrate_schema()
+    quotation_init_db()
     
     # We use run_simple to run the WSGI application
     # This replaces app.run() for the combined app
