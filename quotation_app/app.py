@@ -74,13 +74,20 @@ def init_db():
             delivery_terms TEXT,
             validity_days INTEGER,
             notes TEXT,
-            napomena TEXT
+            napomena TEXT,
+            is_template INTEGER DEFAULT 0
         );
     """)
 
     # --- Migration for existing databases ---
     try:
         cur.execute("ALTER TABLE offers ADD COLUMN napomena TEXT;")
+    except sqlite3.OperationalError:
+        # Already exists
+        pass
+
+    try:
+        cur.execute("ALTER TABLE offers ADD COLUMN is_template INTEGER DEFAULT 0;")
     except sqlite3.OperationalError:
         # Already exists
         pass
@@ -201,9 +208,15 @@ def list_offers():
         session.pop("offers_filter_date_from", None)
         session.pop("offers_filter_date_to", None)
         session.pop("offers_filter_item", None)
+        session.pop("offers_filter_view", None)
         return redirect(url_for("list_offers"))
 
     # Load from request or fallback to session
+    view = request.args.get("view")
+    if view is None:
+        view = session.get("offers_filter_view", "offers")
+    else:
+        session["offers_filter_view"] = view
     search_term = request.args.get("search")
     if search_term is None:
         search_term = session.get("offers_filter_search", "")
@@ -280,6 +293,11 @@ def list_offers():
         params = []
         clauses = []
 
+        if view == "templates":
+            clauses.append("is_template = 1")
+        else:
+            clauses.append("is_template = 0")
+
         if search_term:
             clauses.append("(client_name LIKE ? OR offer_number LIKE ?)")
             pattern = f"%{search_term}%"
@@ -310,6 +328,7 @@ def list_offers():
         date_to=date_to,
         item_filter=item_filter,
         products=products,
+        current_view=view
     )
 
 
@@ -338,6 +357,7 @@ def new_offer():
         validity_days = int(request.form.get("validity_days") or 10)
         notes = (request.form.get("notes") or "").strip()
         napomena = (request.form.get("napomena") or "").strip()
+        is_template = 1 if request.form.get("is_template") else 0
 
         conn = get_db()
         cur = conn.cursor()
@@ -380,15 +400,15 @@ def new_offer():
                 discount_percent, vat_percent,
                 total_net, total_discount, total_net_after_discount,
                 total_vat, total_gross,
-                payment_terms, delivery_terms, validity_days, notes, napomena
+                payment_terms, delivery_terms, validity_days, notes, napomena, is_template
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?, ?, ?, ?, ?);
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?);
         """, (
             offer_number, date_str,
             client_name, client_address, client_email, client_phone,
             currency, exchange_rate,
             discount_percent, vat_percent,
-            payment_terms, delivery_terms, validity_days, notes, napomena
+            payment_terms, delivery_terms, validity_days, notes, napomena, is_template
         ))
         offer_id = cur.lastrowid
         conn.commit()
@@ -521,6 +541,7 @@ def edit_offer(offer_id):
             validity_days = int(request.form.get("validity_days") or 10)
             notes = (request.form.get("notes") or "").strip()
             napomena = (request.form.get("napomena") or "").strip()
+            is_template = 1 if request.form.get("is_template") else 0
 
             # Validate duplicates if not allowed
             cur.execute("SELECT value FROM global_settings WHERE key = 'allow_duplicate_names';")
@@ -542,14 +563,14 @@ def edit_offer(offer_id):
                     client_name = ?, client_address = ?, client_email = ?, client_phone = ?,
                     currency = ?, exchange_rate = ?,
                     discount_percent = ?, vat_percent = ?,
-                    payment_terms = ?, delivery_terms = ?, validity_days = ?, notes = ?, napomena = ?
+                    payment_terms = ?, delivery_terms = ?, validity_days = ?, notes = ?, napomena = ?, is_template = ?
                 WHERE id = ?;
             """, (
                 offer_number, date_str,
                 client_name, client_address, client_email, client_phone,
                 currency, exchange_rate,
                 discount_percent, vat_percent,
-                payment_terms, delivery_terms, validity_days, notes, napomena,
+                payment_terms, delivery_terms, validity_days, notes, napomena, is_template,
                 offer_id
             ))
             conn.commit()
@@ -938,6 +959,67 @@ def offer_pdf(offer_id):
         download_name=filename
     )
 
+@app.route("/offers/<int:offer_id>/duplicate", methods=["POST"])
+def duplicate_offer(offer_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    # 1. Fetch original offer
+    cur.execute("SELECT * FROM offers WHERE id = ?;", (offer_id,))
+    offer = cur.fetchone()
+    if not offer:
+        conn.close()
+        return "Offer not found", 404
+
+    # 2. Insert new offer based on original
+    # We set is_template=0 for the new offer, and clear the offer_number so user can set a new one
+    # Also set today's date
+    today = date.today().isoformat()
+    
+    cur.execute("""
+        INSERT INTO offers (
+            offer_number, date,
+            client_name, client_address, client_email, client_phone,
+            currency, exchange_rate,
+            discount_percent, vat_percent,
+            total_net, total_discount, total_net_after_discount,
+            total_vat, total_gross,
+            payment_terms, delivery_terms, validity_days, notes, napomena, is_template
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0);
+    """, (
+        "", today,
+        offer["client_name"], offer["client_address"], offer["client_email"], offer["client_phone"],
+        offer["currency"], offer["exchange_rate"],
+        offer["discount_percent"], offer["vat_percent"],
+        offer["total_net"], offer["total_discount"], offer["total_net_after_discount"],
+        offer["total_vat"], offer["total_gross"],
+        offer["payment_terms"], offer["delivery_terms"], offer["validity_days"], offer["notes"], offer["napomena"]
+    ))
+    new_offer_id = cur.lastrowid
+
+    # 3. Copy items
+    cur.execute("SELECT * FROM offer_items WHERE offer_id = ? ORDER BY line_order;", (offer_id,))
+    items = cur.fetchall()
+    for item in items:
+        cur.execute("""
+            INSERT INTO offer_items (
+                offer_id, product_id, line_order,
+                item_name, item_description, item_photo_path,
+                quantity, unit_price, line_net
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """, (
+            new_offer_id, item["product_id"], item["line_order"],
+            item["item_name"], item["item_description"], item["item_photo_path"],
+            item["quantity"], item["unit_price"], item["line_net"]
+        ))
+
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for("edit_offer", offer_id=new_offer_id))
+
 @app.route("/offers/<int:offer_id>/delete", methods=["POST"])
 def delete_offer(offer_id):
     conn = get_db()
@@ -977,88 +1059,6 @@ def update_item_order(offer_id):
         conn.close()
 
     return jsonify({"success": True})
-
-@app.route("/offers/<int:offer_id>/duplicate", methods=["POST"])
-def duplicate_offer(offer_id):
-    conn = get_db()
-    cur = conn.cursor()
-
-    # Load original offer
-    cur.execute("SELECT * FROM offers WHERE id = ?;", (offer_id,))
-    offer = cur.fetchone()
-    if offer is None:
-        conn.close()
-        return "Offer not found", 404
-
-    # Insert new offer: copy header, reset totals, new date, empty offer_number
-    new_date = date.today().isoformat()
-    cur.execute("""
-        INSERT INTO offers (
-            offer_number, date,
-            client_name, client_address, client_email, client_phone,
-            currency, exchange_rate,
-            discount_percent, vat_percent,
-            total_net, total_discount, total_net_after_discount,
-            total_vat, total_gross,
-            payment_terms, delivery_terms, validity_days, notes, napomena
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?, ?, ?, ?, ?);
-    """, (
-        "",                         # new offer_number (you can type it later)
-        new_date,
-        offer["client_name"],
-        offer["client_address"],
-        offer["client_email"],
-        offer["client_phone"],
-        offer["currency"],
-        offer["exchange_rate"],
-        offer["discount_percent"] or 0.0,
-        offer["vat_percent"] or 0.0,
-        offer["payment_terms"],
-        offer["delivery_terms"],
-        offer["validity_days"],
-        offer["notes"],
-        offer["napomena"],
-    ))
-    new_offer_id = cur.lastrowid
-
-    # Copy all items
-    cur.execute("""
-        SELECT *
-        FROM offer_items
-        WHERE offer_id = ?
-        ORDER BY line_order, id;
-    """, (offer_id,))
-    items = cur.fetchall()
-
-    for it in items:
-        cur.execute("""
-            INSERT INTO offer_items (
-                offer_id, product_id, line_order,
-                item_name, item_description, item_photo_path,
-                quantity, unit_price, line_net
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
-        """, (
-            new_offer_id,
-            it["product_id"],
-            it["line_order"],
-            it["item_name"],
-            it["item_description"],
-            it["item_photo_path"],
-            it["quantity"],
-            it["unit_price"],
-            it["line_net"],
-        ))
-
-    conn.commit()
-    conn.close()
-
-    # Recalculate totals for the new offer
-    recalc_totals(new_offer_id)
-
-    # Go straight to edit screen of the new offer
-    return redirect(url_for("edit_offer", offer_id=new_offer_id))
 
 @app.route("/compare")
 def compare_offers():

@@ -35,6 +35,13 @@
                         <input type="date" name="date" value="{{ offer.date if offer else today }}">
                     </label>
                 </p>
+                <p>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 10px;">
+                        <input type="checkbox" name="is_template" value="1" {% if offer and offer.is_template
+                            %}checked{% endif %} style="width: auto; margin: 0;">
+                        <span style="font-weight: bold; color: var(--accent-primary);">Sačuvaj kao šablon</span>
+                    </label>
+                </p>
 
                 <h2 style="margin-top:20px;">Informacije o musteriji</h2>
                 <p>

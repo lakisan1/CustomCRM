@@ -298,24 +298,50 @@ import re
 
 # ... your other config/imports ...
 
-def apply_rounding(val):
+def apply_rounding(val, target='price'):
     if val <= 0:
         return 0
     
-    step = 0
-    if val <= 1000:
-        step = 50
-    elif val <= 10000:
-        step = 100
-    elif val <= 30000:
-        step = 500
-    else:
-        step = 1000
-
-    # Round UP to nearest step
-    # ceil(val / step) * step
+    conn = get_db()
+    cur = conn.cursor()
+    # Find the matching rule: smallest limit >= val
+    cur.execute("""
+        SELECT step_val, method 
+        FROM price_rounding_rules 
+        WHERE target = ? AND limit_val >= ? 
+        ORDER BY limit_val ASC 
+        LIMIT 1;
+    """, (target, val))
+    rule = cur.fetchone()
+    
+    if not rule:
+        # Fallback to the largest limit rule for this target
+        cur.execute("""
+            SELECT step_val, method 
+            FROM price_rounding_rules 
+            WHERE target = ? 
+            ORDER BY limit_val DESC 
+            LIMIT 1;
+        """, (target,))
+        rule = cur.fetchone()
+    
+    conn.close()
+    
+    if not rule:
+        return val # No rules defined
+        
+    step = rule["step_val"]
+    method = rule["method"]
+    
     import math
-    return math.ceil(val / step) * step
+    if method == 'UP':
+        return math.ceil(val / step) * step
+    elif method == 'DOWN':
+        return math.floor(val / step) * step
+    elif method == 'NEAREST':
+        return round(val / step) * step
+    else:
+        return math.ceil(val / step) * step
 
 def save_product_image(image_stream, orig_filename, product_name):
     """
@@ -764,11 +790,8 @@ def quick_update_save(product_id):
         if discount_percent > 0:
             # If percentage based, recalculate absolute price
             if final_price > 0:
-                discount_price = final_price * (1 - discount_percent)
-                # If the previous discount price was explicitly set (nice number) and matches the perecent, 
-                # we might lose the "nice number" property if we just calc by percent.
-                # However, since base price changed, the "nice number" would likely be wrong anyway.
-                # So re-calculating by percent is the safer bet for "keeping the same discount level".
+                calc_discount_price = final_price * (1 - discount_percent)
+                discount_price = apply_rounding(calc_discount_price, target='discount')
         elif latest_price["discount_price"]:
              # If it was a fixed price discount (no percent?), just copy it? 
              # Or is it safer to ignore fixed prices if base changed?
@@ -1337,7 +1360,8 @@ def new_price(product_id):
         if discount_price_input > 0:
             discount_price = discount_price_input
         elif discount_percent > 0 and final_price > 0:
-            discount_price = final_price * (1 - discount_percent)
+            calc_discount_price = final_price * (1 - discount_percent)
+            discount_price = apply_rounding(calc_discount_price, target='discount')
 
         if discount_price is not None:
             profit_discount = discount_price - cost_total
@@ -1371,6 +1395,13 @@ def new_price(product_id):
         conn.close()
         return redirect(url_for("price_history", product_id=product_id))
 
+    # Load rounding rules for JS
+    cur.execute("SELECT * FROM price_rounding_rules ORDER BY target, limit_val ASC;")
+    rules_rows = cur.fetchall()
+    rules_json = {'price': [], 'discount': []}
+    for r in rules_rows:
+        rules_json[r['target']].append({'limit': r['limit_val'], 'step': r['step_val'], 'method': r['method']})
+
     conn.close()
     # When rendering form, show percents as "x 100"
     return render_template(
@@ -1388,7 +1419,8 @@ def new_price(product_id):
             "other": defaults.get("other") or 0,
         },
         today=date.today().isoformat(),
-        price=None
+        price=None,
+        rounding_rules=rules_json
     )
 
 @app.route("/products/<int:product_id>/prices/<int:price_id>/edit", methods=["GET", "POST"])
@@ -1463,7 +1495,8 @@ def edit_price(product_id, price_id):
         if discount_price_input > 0:
             discount_price = discount_price_input
         elif discount_percent > 0 and final_price > 0:
-            discount_price = final_price * (1 - discount_percent)
+            calc_discount_price = final_price * (1 - discount_percent)
+            discount_price = apply_rounding(calc_discount_price, target='discount')
 
         if discount_price is not None:
             profit_discount = discount_price - cost_total
@@ -1529,6 +1562,13 @@ def edit_price(product_id, price_id):
                 "other": row["other"] or 0,
             }
 
+    # Load rounding rules for JS
+    cur.execute("SELECT * FROM price_rounding_rules ORDER BY target, limit_val ASC;")
+    rules_rows = cur.fetchall()
+    rules_json = {'price': [], 'discount': []}
+    for r in rules_rows:
+        rules_json[r['target']].append({'limit': r['limit_val'], 'step': r['step_val'], 'method': r['method']})
+
     conn.close()
     return render_template(
         "price_form.html",
@@ -1545,7 +1585,8 @@ def edit_price(product_id, price_id):
             "other": defaults.get("other") or 0,
         },
         today=price["date"],
-        price=price
+        price=price,
+        rounding_rules=rules_json
     )
 
 @app.route("/products/<int:product_id>/prices/<int:price_id>/delete", methods=["POST"])

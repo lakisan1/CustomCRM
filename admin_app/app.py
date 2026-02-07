@@ -92,9 +92,46 @@ def init_pdf_templates_table():
     conn.commit()
     conn.close()
 
+def init_rounding_rules_table():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS price_rounding_rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            target TEXT NOT NULL, -- 'price' or 'discount'
+            limit_val REAL NOT NULL,
+            step_val REAL NOT NULL,
+            method TEXT DEFAULT 'UP' -- 'UP', 'DOWN', 'NEAREST'
+        );
+    """)
+    
+    # Seed if empty
+    cur.execute("SELECT COUNT(*) as count FROM price_rounding_rules;")
+    if cur.fetchone()["count"] == 0:
+        # Default price rules from hardcoded logic
+        defaults = [
+            ('price', 1000, 50, 'UP'),
+            ('price', 10000, 100, 'UP'),
+            ('price', 30000, 500, 'UP'),
+            ('price', 999999999, 1000, 'UP'),
+            # Default discount rules (same as price for now)
+            ('discount', 1000, 50, 'UP'),
+            ('discount', 10000, 100, 'UP'),
+            ('discount', 30000, 500, 'UP'),
+            ('discount', 999999999, 1000, 'UP')
+        ]
+        cur.executemany("""
+            INSERT INTO price_rounding_rules (target, limit_val, step_val, method)
+            VALUES (?, ?, ?, ?);
+        """, defaults)
+        
+    conn.commit()
+    conn.close()
+
 # Initialize DB tables
 init_presets_table()
 init_pdf_templates_table()
+init_rounding_rules_table()
 
 @app.before_request
 def check_auth():
@@ -484,3 +521,56 @@ def restore_db():
         flash("No file selected.", "error")
 
     return redirect(url_for("index"))
+
+@app.route("/rounding_rules")
+def list_rounding_rules():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM price_rounding_rules ORDER BY target ASC, limit_val ASC;")
+    rules = cur.fetchall()
+    
+    rules_by_target = {'price': [], 'discount': []}
+    for r in rules:
+        if r['target'] in rules_by_target:
+            rules_by_target[r['target']].append(r)
+            
+    conn.close()
+    return render_template("rounding_rules.html", rules_by_target=rules_by_target)
+
+@app.route("/add_rounding_rule", methods=["POST"])
+def add_rounding_rule():
+    target = request.form.get("target")
+    limit_val = float(request.form.get("limit_val") or 0)
+    step_val = float(request.form.get("step_val") or 0)
+    method = request.form.get("method", "UP")
+    
+    if not target or limit_val <= 0 or step_val <= 0:
+        flash("Invalid rule data.", "error")
+        return redirect(url_for("list_rounding_rules"))
+        
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO price_rounding_rules (target, limit_val, step_val, method)
+        VALUES (?, ?, ?, ?);
+    """, (target, limit_val, step_val, method))
+    conn.commit()
+    conn.close()
+    
+    flash("Rounding rule added.", "success")
+    return redirect(url_for("list_rounding_rules"))
+
+@app.route("/delete_rounding_rule", methods=["POST"])
+def delete_rounding_rule():
+    rule_id = request.form.get("rule_id")
+    if not rule_id:
+        return redirect(url_for("list_rounding_rules"))
+        
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM price_rounding_rules WHERE id = ?;", (rule_id,))
+    conn.commit()
+    conn.close()
+    
+    flash("Rounding rule deleted.", "success")
+    return redirect(url_for("list_rounding_rules"))
