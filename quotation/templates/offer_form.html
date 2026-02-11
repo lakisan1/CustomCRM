@@ -68,6 +68,18 @@
                             value="{{ offer.client_phone if offer else '' }}">
                     </label>
                 </p>
+                <p>
+                    <label>PIB:<br>
+                        <input type="text" name="client_pib" class="long-input"
+                            value="{{ offer.client_pib if offer else '' }}">
+                    </label>
+                </p>
+                <p>
+                    <label>MB:<br>
+                        <input type="text" name="client_mb" class="long-input"
+                            value="{{ offer.client_mb if offer else '' }}">
+                    </label>
+                </p>
             </div>
 
             <!-- Col 2: Payment Info -->

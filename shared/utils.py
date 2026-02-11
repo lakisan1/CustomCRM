@@ -82,7 +82,10 @@ TRANSLATIONS = {
         'View Landing Page': 'Početna strana',
         'PDF Templates': 'PDF Šabloni',
         'Rounding Rules': 'Pravila zaokruživanja',
-        'Landing Page': 'Početna strana'
+        'Landing Page': 'Početna strana',
+        'Address': 'Adresa',
+        'Phone': 'Telefon',
+        'Tel': 'Tel'
     },
     'en': {
         # Defaults are mostly English in the code

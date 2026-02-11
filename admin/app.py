@@ -53,7 +53,7 @@ def init_pdf_templates_table():
     """)
     
     # Try to read current filesystem templates
-    templates_dir = os.path.join(PARENT_DIR, "quotation_app", "templates")
+    templates_dir = os.path.join(PARENT_DIR, "quotation", "templates")
     css_path = os.path.join(PARENT_DIR, "static", "css", "pdf.css")
     
     header_html, body_html, footer_html, pdf_css = "", "", "", ""

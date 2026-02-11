@@ -92,6 +92,18 @@ def init_db():
         # Already exists
         pass
 
+    try:
+        cur.execute("ALTER TABLE offers ADD COLUMN client_pib TEXT;")
+    except sqlite3.OperationalError:
+        # Already exists
+        pass
+
+    try:
+        cur.execute("ALTER TABLE offers ADD COLUMN client_mb TEXT;")
+    except sqlite3.OperationalError:
+        # Already exists
+        pass
+
     # Offer items table
     cur.execute("""
         CREATE TABLE IF NOT EXISTS offer_items (
@@ -142,8 +154,9 @@ def get_nbs_eur_middle_rate():
 
 
 @app.template_filter('format_date')
-def _format_date_filter(date_str):
-    fmt = get_date_format()
+def _format_date_filter(date_str, fmt=None):
+    if fmt is None:
+        fmt = get_date_format()
     return format_date(date_str, fmt)
 
 @app.context_processor
@@ -348,6 +361,8 @@ def new_offer():
         client_address = (request.form.get("client_address") or "").strip()
         client_email = (request.form.get("client_email") or "").strip()
         client_phone = (request.form.get("client_phone") or "").strip()
+        client_pib = (request.form.get("client_pib") or "").strip()
+        client_mb = (request.form.get("client_mb") or "").strip()
 
         currency = (request.form.get("currency") or "EUR").strip()
         exchange_rate = float(request.form.get("exchange_rate") or 0)
@@ -385,6 +400,8 @@ def new_offer():
                     "client_address": client_address,
                     "client_email": client_email,
                     "client_phone": client_phone,
+                    "client_pib": client_pib,
+                    "client_mb": client_mb,
                     "currency": currency,
                     "exchange_rate": exchange_rate,
                     "discount_percent": discount_percent_input / 100.0 if discount_percent_input else None, 
@@ -401,17 +418,17 @@ def new_offer():
         cur.execute("""
             INSERT INTO offers (
                 offer_number, date,
-                client_name, client_address, client_email, client_phone,
+                client_name, client_address, client_email, client_phone, client_pib, client_mb,
                 currency, exchange_rate,
                 discount_percent, vat_percent,
                 total_net, total_discount, total_net_after_discount,
                 total_vat, total_gross,
                 payment_terms, delivery_terms, validity_days, notes, napomena, is_template
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?);
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?);
         """, (
             offer_number, date_str,
-            client_name, client_address, client_email, client_phone,
+            client_name, client_address, client_email, client_phone, client_pib, client_mb,
             currency, exchange_rate,
             discount_percent, vat_percent,
             payment_terms, delivery_terms, validity_days, notes, napomena, is_template
@@ -540,6 +557,8 @@ def edit_offer(offer_id):
             client_address = (request.form.get("client_address") or "").strip()
             client_email = (request.form.get("client_email") or "").strip()
             client_phone = (request.form.get("client_phone") or "").strip()
+            client_pib = (request.form.get("client_pib") or "").strip()
+            client_mb = (request.form.get("client_mb") or "").strip()
 
             currency = (request.form.get("currency") or "EUR").strip()
             exchange_rate = float(request.form.get("exchange_rate") or 0)
@@ -574,14 +593,14 @@ def edit_offer(offer_id):
             cur.execute("""
                 UPDATE offers
                 SET offer_number = ?, date = ?,
-                    client_name = ?, client_address = ?, client_email = ?, client_phone = ?,
+                    client_name = ?, client_address = ?, client_email = ?, client_phone = ?, client_pib = ?, client_mb = ?,
                     currency = ?, exchange_rate = ?,
                     discount_percent = ?, vat_percent = ?,
                     payment_terms = ?, delivery_terms = ?, validity_days = ?, notes = ?, napomena = ?, is_template = ?
                 WHERE id = ?;
             """, (
                 offer_number, date_str,
-                client_name, client_address, client_email, client_phone,
+                client_name, client_address, client_email, client_phone, client_pib, client_mb,
                 currency, exchange_rate,
                 discount_percent, vat_percent,
                 payment_terms, delivery_terms, validity_days, notes, napomena, is_template,
@@ -932,6 +951,12 @@ def offer_pdf(offer_id):
     }
     # Actually these are already in app.jinja_env.globals if registered
     # but for render_template_string we might need to be explicit or it uses the current app context.
+
+    # Fix for System Default template (render_template_string needs these explicitly if not global)
+    ctx["current_date_format"] = get_date_format()
+    # Dummy translation function if not present
+    ctx["_"] = lambda x: x
+    ctx["gettext"] = lambda x: x
 
     if custom_tpl:
         # Render parts from DB

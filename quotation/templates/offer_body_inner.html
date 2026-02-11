@@ -1,22 +1,27 @@
 {# offer_body_inner.html #}
 
-<table class="header-table">
+<table class="info-table" style="width: 100%; margin-bottom: 20px;">
     <tr>
-        <td>
-            <strong>{{ _('Customer') }}:</strong><br>
-            {{ offer.client_name }}<br>
-            {{ offer.client_address }}<br>
-            {% if offer.client_email %}E-mail: {{ offer.client_email }}<br>{% endif %}
-            {% if offer.client_phone %}Tel: {{ offer.client_phone }}<br>{% endif %}
+        <td style="width: 50%; vertical-align: top;">
+            <strong>{{ _('Customer') }}:</strong> {{ offer.client_name }}<br>
+            {% if offer.client_pib %}<strong>PIB:</strong> {{ offer.client_pib }}<br>{% endif %}
+            {% if offer.client_mb %}<strong>MB:</strong> {{ offer.client_mb }}<br>{% endif %}
         </td>
-        <td style="text-align:center;">
-            <strong>{{ _('OFFER No.') }} {{ offer.offer_number or offer.id }}</strong><br>
-            {{ _('Date') }}: {{ offer.date | format_date(current_date_format) }}<br>
+        <td style="width: 50%; vertical-align: top; text-align: right;">
+            {% if offer.client_address %}<strong>{{ _('Address') }}:</strong> {{ offer.client_address }}<br>{% endif %}
+            {% if offer.client_email %}<strong>E-mail:</strong> {{ offer.client_email }}<br>{% endif %}
+            {% if offer.client_phone %}<strong>{{ _('Tel') }}:</strong> {{ offer.client_phone }}<br>{% endif %}
         </td>
     </tr>
 </table>
 
-<h3>{{ _('Offer Items') }}</h3>
+<div style="text-align: center; margin-bottom: 30px;">
+    <h3 style="margin: 0; padding: 0;">{{ _('OFFER No.') }} {{ offer.offer_number or offer.id }}</h3>
+    <div>{{ _('Date') }}: {{ offer.date | format_date(current_date_format) }}</div>
+</div>
+
+<h3 style="color: #0088cc; border-bottom: 2px solid #0088cc; padding-bottom: 5px; margin-top: 30px;">{{ _('Offer Items')
+    }}</h3>
 <table class="items-table">
     <thead>
         <tr>
