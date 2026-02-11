@@ -229,6 +229,39 @@
                     </small>
                 </div>
 
+                <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 10px; display: block;">Mandatory Fields in
+                        Quotation</label>
+                    <div class="grid-2-col-asymmetric"
+                        style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="req_client_address" value="true" {% if
+                                mandatory_fields.req_client_address %}checked{% endif %}>
+                            Client Address
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="req_client_email" value="true" {% if
+                                mandatory_fields.req_client_email %}checked{% endif %}>
+                            Client Email
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="req_client_phone" value="true" {% if
+                                mandatory_fields.req_client_phone %}checked{% endif %}>
+                            Client Phone
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="req_client_pib" value="true" {% if
+                                mandatory_fields.req_client_pib %}checked{% endif %}>
+                            Client PIB
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" name="req_client_mb" value="true" {% if
+                                mandatory_fields.req_client_mb %}checked{% endif %}>
+                            Client MB
+                        </label>
+                    </div>
+                </div>
+
                 <div style="margin-top: 16px;">
                     <label style="color: var(--accent-warning);">Confirm Current Admin Password</label>
                     <input type="password" name="current_admin_password" required>

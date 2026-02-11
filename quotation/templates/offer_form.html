@@ -51,33 +51,41 @@
                     </label>
                 </p>
                 <p>
-                    <label>Adresa musterije:<br>
+                    <label>Adresa musterije:{% if mandatory_fields.req_client_address %} <span
+                            style="color:red">*</span>{% endif %}<br>
                         <input type="text" name="client_address" class="long-input"
-                            value="{{ offer.client_address if offer else '' }}">
+                            value="{{ offer.client_address if offer else '' }}" {% if
+                            mandatory_fields.req_client_address %}required{% endif %}>
                     </label>
                 </p>
                 <p>
-                    <label>eMail musterije:<br>
+                    <label>eMail musterije:{% if mandatory_fields.req_client_email %} <span style="color:red">*</span>{%
+                        endif %}<br>
                         <input type="email" name="client_email" class="long-input"
-                            value="{{ offer.client_email if offer else '' }}">
+                            value="{{ offer.client_email if offer else '' }}" {% if mandatory_fields.req_client_email
+                            %}required{% endif %}>
                     </label>
                 </p>
                 <p>
-                    <label>Broj telefona musterije:<br>
+                    <label>Broj telefona musterije:{% if mandatory_fields.req_client_phone %} <span
+                            style="color:red">*</span>{% endif %}<br>
                         <input type="text" name="client_phone" class="long-input"
-                            value="{{ offer.client_phone if offer else '' }}">
+                            value="{{ offer.client_phone if offer else '' }}" {% if mandatory_fields.req_client_phone
+                            %}required{% endif %}>
                     </label>
                 </p>
                 <p>
-                    <label>PIB:<br>
+                    <label>PIB:{% if mandatory_fields.req_client_pib %} <span style="color:red">*</span>{% endif %}<br>
                         <input type="text" name="client_pib" class="long-input"
-                            value="{{ offer.client_pib if offer else '' }}">
+                            value="{{ offer.client_pib if offer else '' }}" {% if mandatory_fields.req_client_pib
+                            %}required{% endif %}>
                     </label>
                 </p>
                 <p>
-                    <label>MB:<br>
+                    <label>MB:{% if mandatory_fields.req_client_mb %} <span style="color:red">*</span>{% endif %}<br>
                         <input type="text" name="client_mb" class="long-input"
-                            value="{{ offer.client_mb if offer else '' }}">
+                            value="{{ offer.client_mb if offer else '' }}" {% if mandatory_fields.req_client_mb
+                            %}required{% endif %}>
                     </label>
                 </p>
             </div>

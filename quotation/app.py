@@ -131,7 +131,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-import requests  # make sure this is at the top of the file
+
 
 def get_nbs_eur_middle_rate():
     """
@@ -218,6 +218,19 @@ def get_theme():
     row = cur.fetchone()
     conn.close()
     return row["value"] if row else "dark"
+
+def get_mandatory_fields():
+    """Fetch mandatory field settings from global_settings."""
+    conn = get_db()
+    cur = conn.cursor()
+    fields = ['req_client_address', 'req_client_email', 'req_client_phone', 'req_client_pib', 'req_client_mb']
+    settings = {}
+    for f in fields:
+        cur.execute("SELECT value FROM global_settings WHERE key = ?;", (f,))
+        row = cur.fetchone()
+        settings[f] = (row["value"] == "true") if row else False
+    conn.close()
+    return settings
 
 @app.route("/offers")
 def list_offers():
@@ -380,6 +393,59 @@ def new_offer():
         napomena = (request.form.get("napomena") or "").strip()
         is_template = 1 if request.form.get("is_template") else 0
 
+        # Validate mandatory fields
+        mandatory = get_mandatory_fields()
+        errors = []
+        if mandatory.get('req_client_address') and not client_address:
+            errors.append("Address is required.")
+        if mandatory.get('req_client_email') and not client_email:
+            errors.append("Email is required.")
+        if mandatory.get('req_client_phone') and not client_phone:
+            errors.append("Phone is required.")
+        if mandatory.get('req_client_pib') and not client_pib:
+            errors.append("PIB is required.")
+        if mandatory.get('req_client_mb') and not client_mb:
+            errors.append("MB is required.")
+
+        if errors:
+            # Re-render with error
+             # Fetch default presets if they exist
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute("SELECT category, content FROM text_presets WHERE is_default = 1;")
+            default_rows = cur.fetchall()
+            
+            # Fetch all presets for dropdowns
+            cur.execute("SELECT * FROM text_presets ORDER BY name ASC;")
+            all_presets = cur.fetchall()
+            presets_by_cat = {'delivery': [], 'payment': [], 'note': [], 'extra': []}
+            for p in all_presets:
+                if p['category'] in presets_by_cat:
+                    presets_by_cat[p['category']].append(p)
+            conn.close()
+
+            preserved_offer = {
+                "offer_number": offer_number,
+                "date": date_str,
+                "client_name": client_name,
+                "client_address": client_address,
+                "client_email": client_email,
+                "client_phone": client_phone,
+                "client_pib": client_pib,
+                "client_mb": client_mb,
+                "currency": currency,
+                "exchange_rate": exchange_rate,
+                "discount_percent": discount_percent_input / 100.0 if discount_percent_input else None, 
+                "vat_percent": vat_percent_input / 100.0 if vat_percent_input else None,
+                "payment_terms": payment_terms,
+                "delivery_terms": delivery_terms,
+                "validity_days": validity_days,
+                "notes": notes,
+                "napomena": napomena
+            }
+            return render_template("offer_form.html", offer=preserved_offer, today=date.today().isoformat(), 
+                                   error=" ".join(errors), mandatory_fields=mandatory, presets_by_cat=presets_by_cat)
+
         conn = get_db()
         cur = conn.cursor()
         # Validate duplicates if not allowed
@@ -482,7 +548,8 @@ def new_offer():
                            default_payment=default_payment,
                            default_vat_percent=default_vat_percent,
                            default_validity_days=default_validity_days,
-                           presets_by_cat=presets_by_cat)
+                           presets_by_cat=presets_by_cat,
+                           mandatory_fields=get_mandatory_fields())
 
 
 def recalc_totals(offer_id):
@@ -575,6 +642,24 @@ def edit_offer(offer_id):
             notes = (request.form.get("notes") or "").strip()
             napomena = (request.form.get("napomena") or "").strip()
             is_template = 1 if request.form.get("is_template") else 0
+
+            # Validate mandatory fields
+            mandatory = get_mandatory_fields()
+            errors = []
+            if mandatory.get('req_client_address') and not client_address:
+                errors.append("Address is required.")
+            if mandatory.get('req_client_email') and not client_email:
+                errors.append("Email is required.")
+            if mandatory.get('req_client_phone') and not client_phone:
+                errors.append("Phone is required.")
+            if mandatory.get('req_client_pib') and not client_pib:
+                errors.append("PIB is required.")
+            if mandatory.get('req_client_mb') and not client_mb:
+                errors.append("MB is required.")
+
+            if errors:
+                session["error_message"] = " ".join(errors)
+                return redirect(url_for("edit_offer", offer_id=offer_id))
 
             # Validate duplicates if not allowed
             cur.execute("SELECT value FROM global_settings WHERE key = 'allow_duplicate_names';")
@@ -848,7 +933,8 @@ def edit_offer(offer_id):
         selected_product_id=selected_product_id,
         today=date.today().isoformat(),
         new_prod_id=new_prod_id,
-        presets_by_cat=presets_by_cat
+        presets_by_cat=presets_by_cat,
+        mandatory_fields=get_mandatory_fields()
     )
 
 @app.route("/offers/<int:offer_id>/view")

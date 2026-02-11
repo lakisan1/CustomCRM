@@ -196,6 +196,13 @@ def index():
         if p['category'] in presets_by_cat:
             presets_by_cat[p['category']].append(p)
 
+    # Fetch mandatory fields settings
+    mandatory_fields = {}
+    for field in ['req_client_address', 'req_client_email', 'req_client_phone', 'req_client_pib', 'req_client_mb']:
+        cur.execute("SELECT value FROM global_settings WHERE key = ?;", (field,))
+        row = cur.fetchone()
+        mandatory_fields[field] = (row["value"] == "true") if row else False
+
     conn.close()
 
     return render_template(
@@ -207,6 +214,7 @@ def index():
         default_vat_percent=default_vat_percent,
         default_validity_days=default_validity_days,
         presets_by_cat=presets_by_cat,
+        mandatory_fields=mandatory_fields,
         timestamp=int(time.time()),
         theme=current_theme
     )
@@ -383,6 +391,11 @@ def update_settings():
     if validity:
         cur.execute("INSERT OR REPLACE INTO global_settings (key, value) VALUES ('default_validity_days', ?);", (validity,))
         
+    # Mandatory fields
+    for field in ['req_client_address', 'req_client_email', 'req_client_phone', 'req_client_pib', 'req_client_mb']:
+        val = "true" if request.form.get(field) == "true" else "false"
+        cur.execute("INSERT OR REPLACE INTO global_settings (key, value) VALUES (?, ?);", (field, val))
+
     conn.commit()
     conn.close()
     
