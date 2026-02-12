@@ -404,6 +404,14 @@ def new_offer():
             for p in all_presets:
                 if p['category'] in presets_by_cat:
                     presets_by_cat[p['category']].append(p)
+            cur.execute("SELECT value FROM global_settings WHERE key = 'email_offer_subject';")
+            row = cur.fetchone()
+            email_offer_subject = row["value"] if row else "Ponuda br. {offer_number}"
+
+            cur.execute("SELECT value FROM global_settings WHERE key = 'email_offer_body';")
+            row = cur.fetchone()
+            email_offer_body = row["value"] if row else "Postovani,\n\nU prilogu vam saljemo ponudu br. {offer_number}.\n\nSrdacan pozdrav,\nVas Tim"
+            
             conn.close()
 
             preserved_offer = {
@@ -426,7 +434,8 @@ def new_offer():
                 "napomena": napomena
             }
             return render_template("offer_form.html", offer=preserved_offer, today=date.today().isoformat(), 
-                                   error=" ".join(errors), mandatory_fields=mandatory, presets_by_cat=presets_by_cat)
+                                   error=" ".join(errors), mandatory_fields=mandatory, presets_by_cat=presets_by_cat,
+                                   email_offer_subject=email_offer_subject, email_offer_body=email_offer_body)
 
         conn = get_db()
         cur = conn.cursor()
@@ -439,6 +448,14 @@ def new_offer():
             cur.execute("SELECT id FROM offers WHERE offer_number = ?;", (offer_number,))
             existing = cur.fetchone()
             if existing:
+                cur.execute("SELECT value FROM global_settings WHERE key = 'email_offer_subject';")
+                row = cur.fetchone()
+                email_offer_subject = row["value"] if row else "Ponuda br. {offer_number}"
+
+                cur.execute("SELECT value FROM global_settings WHERE key = 'email_offer_body';")
+                row = cur.fetchone()
+                email_offer_body = row["value"] if row else "Postovani,\n\nU prilogu vam saljemo ponudu br. {offer_number}.\n\nSrdacan pozdrav,\nVas Tim"
+
                 conn.close()
                 # Construct a dict to preserve inputs
                 preserved_offer = {
@@ -461,7 +478,8 @@ def new_offer():
                     "napomena": napomena
                 }
                 return render_template("offer_form.html", offer=preserved_offer, today=date.today().isoformat(), 
-                                       error="Offer number already exists (Duplicates disabled in Admin).")
+                                       error="Offer number already exists (Duplicates disabled in Admin).",
+                                       email_offer_subject=email_offer_subject, email_offer_body=email_offer_body)
 
         cur.execute("""
             INSERT INTO offers (
@@ -511,6 +529,15 @@ def new_offer():
     row = cur.fetchone()
     default_validity_days = int(row["value"]) if row else 10
 
+    # Fetch email templates
+    cur.execute("SELECT value FROM global_settings WHERE key = 'email_offer_subject';")
+    row = cur.fetchone()
+    email_offer_subject = row["value"] if row else "Ponuda br. {offer_number}"
+
+    cur.execute("SELECT value FROM global_settings WHERE key = 'email_offer_body';")
+    row = cur.fetchone()
+    email_offer_body = row["value"] if row else "Postovani,\n\nU prilogu vam saljemo ponudu br. {offer_number}.\n\nSrdacan pozdrav,\nVas Tim"
+
     conn.close()
 
     defaults = {r['category']: r['content'] for r in default_rows}
@@ -531,7 +558,9 @@ def new_offer():
                            default_vat_percent=default_vat_percent,
                            default_validity_days=default_validity_days,
                            presets_by_cat=presets_by_cat,
-                           mandatory_fields=get_mandatory_fields())
+                           mandatory_fields=get_mandatory_fields(),
+                           email_offer_subject=email_offer_subject,
+                           email_offer_body=email_offer_body)
 
 
 def recalc_totals(offer_id):
@@ -901,6 +930,15 @@ def edit_offer(offer_id):
         if p['category'] in presets_by_cat:
             presets_by_cat[p['category']].append(p)
 
+    # Fetch email templates
+    cur.execute("SELECT value FROM global_settings WHERE key = 'email_offer_subject';")
+    row = cur.fetchone()
+    email_offer_subject = row["value"] if row else "Ponuda br. {offer_number}"
+
+    cur.execute("SELECT value FROM global_settings WHERE key = 'email_offer_body';")
+    row = cur.fetchone()
+    email_offer_body = row["value"] if row else "Postovani,\n\nU prilogu vam saljemo ponudu br. {offer_number}.\n\nSrdacan pozdrav,\nVas Tim"
+
     conn.close()
     return render_template(
         "offer_form.html",
@@ -916,8 +954,11 @@ def edit_offer(offer_id):
         today=date.today().isoformat(),
         new_prod_id=new_prod_id,
         presets_by_cat=presets_by_cat,
-        mandatory_fields=get_mandatory_fields()
+        mandatory_fields=get_mandatory_fields(),
+        email_offer_subject=email_offer_subject,
+        email_offer_body=email_offer_body
     )
+
 
 @app.route("/offers/<int:offer_id>/view")
 def view_offer(offer_id):

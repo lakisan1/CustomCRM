@@ -187,6 +187,15 @@ def index():
     cur.execute("SELECT value FROM global_settings WHERE key = 'default_validity_days';")
     row = cur.fetchone()
     default_validity_days = row["value"] if row else "10"
+
+    cur.execute("SELECT value FROM global_settings WHERE key = 'email_offer_subject';")
+    row = cur.fetchone()
+    email_offer_subject = row["value"] if row else "Ponuda br. {offer_number}"
+
+    cur.execute("SELECT value FROM global_settings WHERE key = 'email_offer_body';")
+    row = cur.fetchone()
+    email_offer_body = row["value"] if row else "Postovani,\n\nU prilogu vam saljemo ponudu br. {offer_number}.\n\nSrdacan pozdrav,\nVas Tim"
+
     
     # Fetch all presets and group by category
     cur.execute("SELECT * FROM text_presets ORDER BY name ASC;")
@@ -215,6 +224,8 @@ def index():
         default_validity_days=default_validity_days,
         presets_by_cat=presets_by_cat,
         mandatory_fields=mandatory_fields,
+        email_offer_subject=email_offer_subject,
+        email_offer_body=email_offer_body,
         timestamp=int(time.time()),
         theme=current_theme
     )
@@ -390,6 +401,16 @@ def update_settings():
     validity = request.form.get("default_validity_days")
     if validity:
         cur.execute("INSERT OR REPLACE INTO global_settings (key, value) VALUES ('default_validity_days', ?);", (validity,))
+        
+    email_subject = request.form.get("email_offer_subject")
+    if email_subject:
+        cur.execute("INSERT OR REPLACE INTO global_settings (key, value) VALUES ('email_offer_subject', ?);", (email_subject,))
+
+    email_body = request.form.get("email_offer_body")
+    # Body can be empty, but let's save it anyway if present in form (even if empty string)
+    if email_body is not None:
+        cur.execute("INSERT OR REPLACE INTO global_settings (key, value) VALUES ('email_offer_body', ?);", (email_body,))
+
         
     # Mandatory fields
     for field in ['req_client_address', 'req_client_email', 'req_client_phone', 'req_client_pib', 'req_client_mb']:

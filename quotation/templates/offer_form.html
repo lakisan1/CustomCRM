@@ -199,6 +199,10 @@
             <a href="{{ url_for('offer_pdf', offer_id=offer.id) }}" id="btn-print-pdf" class="btn btn-primary"
                 target="_blank">Print
                 PDF</a>
+            <button type="button" id="btn-print-send" class="btn btn-secondary" style="margin-left: 10px;"
+                data-email-subject="{{ email_offer_subject or '' }}"
+                data-email-body="{{ email_offer_body or '' }}">Print and
+                send</button>
             {% endif %}
         </div>
     </form>
@@ -619,6 +623,62 @@
                 }
             });
         });
+
+        // --- Print and Send logic ---
+        const btnPrintSend = document.getElementById('btn-print-send');
+        if (btnPrintSend) {
+            btnPrintSend.addEventListener('click', function () {
+                // 1. Get client email
+                const emailInput = document.querySelector('input[name="client_email"]');
+                const clientEmail = emailInput ? emailInput.value.trim() : "";
+
+                // 2. Get templates from server-side variables (passed to JS)
+                // Use default if variable is empty or undefined
+                let subjectTpl = this.dataset.emailSubject;
+                let bodyTpl = this.dataset.emailBody;
+
+                if (!subjectTpl) subjectTpl = "Ponuda br. {offer_number}";
+                if (!bodyTpl) bodyTpl = "Postovani,\n\nU prilogu vam saljemo ponudu br. {offer_number}.\n\nSrdacan pozdrav,\nVas Tim";
+
+                // 3. Get offer data for replacement
+                const offerNumberInput = document.querySelector('input[name="offer_number"]');
+                const offerNumber = offerNumberInput ? offerNumberInput.value : "";
+
+                const clientNameInput = document.querySelector('input[name="client_name"]');
+                const clientName = clientNameInput ? clientNameInput.value : "";
+
+                const offerDateInput = document.querySelector('input[name="date"]');
+                const offerDate = offerDateInput ? offerDateInput.value : "";
+
+                // 4. Perform replacements
+                const subject = subjectTpl
+                    .replace(/{offer_number}/g, offerNumber)
+                    .replace(/{client_name}/g, clientName)
+                    .replace(/{offer_date}/g, offerDate);
+
+                const body = bodyTpl
+                    .replace(/{offer_number}/g, offerNumber)
+                    .replace(/{client_name}/g, clientName)
+                    .replace(/{offer_date}/g, offerDate);
+
+                // 5. Construct mailto link
+                const mailtoLink = `mailto:${clientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+                // 6. Open PDF in new tab FIRST
+                const pdfBtn = document.getElementById('btn-print-pdf');
+                if (pdfBtn) {
+                    window.open(pdfBtn.href, '_blank');
+                }
+
+                // 7. Navigate to mailto (opens default email client)
+                // 7. Navigate to mailto (opens default email client)
+                setTimeout(() => {
+                    window.open(mailtoLink, '_blank');
+                }, 1000);
+            });
+        }
+
+
     });
 </script>
 {% endblock %}
