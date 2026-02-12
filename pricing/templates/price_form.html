@@ -85,6 +85,10 @@
                                     </label>
                                 </p>
                             </div>
+                            <!-- Status Notification -->
+                            <p style="margin-top: -10px; margin-bottom: 10px;">
+                                <small id="rate_status" style="color: var(--text-muted); font-style: italic;"></small>
+                            </p>
                             <p style="font-size: 11px; margin-top: -5px;">
                                 <a href="https://www.nbs.rs/sr_RS/finansijsko-trziste/devizno-trziste/kursna-lista/za-donosioca/index.html"
                                     target="_blank" style="color: var(--text-muted); text-decoration: none;">Izvor:
@@ -274,6 +278,10 @@
     </form>
 </div>
 
+<script type="application/json" id="rounding-rules-data">
+    {{ rounding_rules | tojson | safe }}
+</script>
+
 <script>
     function parseNumber(value) {
         if (typeof value === "string") {
@@ -283,7 +291,8 @@
         return isNaN(num) ? 0 : num;
     }
 
-    const roundingRules = {{ rounding_rules | tojson | safe }};
+    const rrData = document.getElementById('rounding-rules-data').textContent;
+    const roundingRules = rrData ? JSON.parse(rrData) : {};
 
     function applyRounding(val, target = 'price') {
         if (val <= 0) return 0;
@@ -399,12 +408,16 @@
         btn.textContent = "...";
         btn.disabled = true;
 
-        fetch(`/api/nbs_rate/${curr}`)
+        const urlPattern = "{{ url_for('api_nbs_rate', currency='__CURR__') }}";
+        fetch(urlPattern.replace('__CURR__', curr))
             .then(resp => resp.json())
             .then(data => {
                 if (data.success) {
                     document.getElementById(targetId).value = data.rate.toFixed(4);
                     updateConversion();
+                    const now = new Date();
+                    const ts = now.toLocaleString('sr-RS');
+                    document.getElementById('rate_status').textContent = `Kurs preuzet sa NBS (${ts}).`;
                 } else {
                     alert(data.message);
                 }
@@ -423,14 +436,19 @@
         btn.disabled = true;
 
         // Fetch both and calculate cross rate: EUR_RSD / USD_RSD
+        const eurUrl = "{{ url_for('api_nbs_rate', currency='eur') }}";
+        const usdUrl = "{{ url_for('api_nbs_rate', currency='usd') }}";
         Promise.all([
-            fetch('/api/nbs_rate/eur').then(r => r.json()),
-            fetch('/api/nbs_rate/usd').then(r => r.json())
+            fetch(eurUrl).then(r => r.json()),
+            fetch(usdUrl).then(r => r.json())
         ]).then(([eurData, usdData]) => {
             if (eurData.success && usdData.success) {
                 const crossRate = eurData.rate / usdData.rate;
                 document.getElementById('conv_rate_usd_eur').value = crossRate.toFixed(4);
                 updateConversion();
+                const now = new Date();
+                const ts = now.toLocaleString('sr-RS');
+                document.getElementById('rate_status').textContent = `Kurs preuzet sa NBS (${ts}).`;
             } else {
                 alert("Greška pri preuzimanju kurseva.");
             }

@@ -27,7 +27,7 @@ from shared.auth import check_password
 
 # import common_utils (it's in PARENT_DIR)
 # we already added PARENT_DIR to sys.path above
-from shared.utils import format_amount, format_date
+from shared.utils import format_amount, format_date, get_nbs_rate
 
 app = Flask(
     __name__,
@@ -438,23 +438,6 @@ def download_image_from_url(url):
         raise ValueError(f"Greška pri preuzimanju slike sa URL-a: {str(e)}")
 
 
-def get_nbs_rate(currency="eur"):
-    """
-    Get today's middle rate for a currency from Kurs API (uses NBS data).
-    Returns float or None on error.
-    """
-    url = f"https://kurs.resenje.org/api/v1/currencies/{currency.lower()}/rates/today"
-    try:
-        resp = requests.get(url, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-        rate = data.get("exchange_middle")
-        if rate is None:
-            return None
-        return float(rate)
-    except Exception as e:
-        print(f"Error fetching {currency} rate:", e)
-        return None
 
 @app.route("/api/nbs_rate/<currency>")
 def api_nbs_rate(currency):

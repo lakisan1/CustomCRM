@@ -24,7 +24,7 @@ from shared.auth import check_password
 
 #  common_utils app import
 # it's in PARENT_DIR which is already in sys.path
-from shared.utils import format_amount, format_date
+from shared.utils import format_amount, format_date, get_nbs_rate
 
 app = Flask(
     __name__,
@@ -133,24 +133,6 @@ def init_db():
 
 
 
-def get_nbs_eur_middle_rate():
-    """
-    Get today's srednji kurs EUR/RSD from Kurs API (uses NBS data).
-    Returns float (e.g. 117.35) or None on error.
-    """
-    url = "https://kurs.resenje.org/api/v1/currencies/eur/rates/today"
-    try:
-        resp = requests.get(url, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-        # According to Kurs API docs, field is 'exchange_middle'
-        rate = data.get("exchange_middle")
-        if rate is None:
-            return None
-        return float(rate)
-    except Exception as e:
-        print("Error fetching EUR/RSD rate:", e)
-        return None
 
 
 @app.template_filter('format_date')
@@ -168,7 +150,7 @@ def inject_helpers():
 
 @app.route("/api/nbs_eur_rate")
 def api_nbs_eur_rate():
-    rate = get_nbs_eur_middle_rate()
+    rate = get_nbs_rate("eur")
     if rate is None:
         return jsonify({"success": False, "message": "Neuspešno preuzimanje kursa sa NBS."}), 500
     return jsonify({"success": True, "rate": rate})
