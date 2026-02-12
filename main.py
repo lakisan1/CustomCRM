@@ -6,7 +6,7 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 if CURRENT_DIR not in sys.path:
     sys.path.append(CURRENT_DIR)
 
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 # Import the existing apps
@@ -15,7 +15,7 @@ from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from pricing.app import app as pricing_app, init_db as pricing_init_db, migrate_schema as pricing_migrate_schema
 from quotation.app import app as quotation_app, init_db as quotation_init_db
 from admin.app import app as admin_app
-from shared.config import STATIC_DIR
+from shared.config import STATIC_DIR, APP_ASSETS_DIR
 
 # Initialize the main landing app
 # We explicitly set static_folder to the shared one so it can serve css/js for the landing page
@@ -25,6 +25,10 @@ app = Flask(__name__, template_folder='templates', static_folder=STATIC_DIR, sta
 @app.route("/")
 def index():
     return render_template("landing.html")
+
+@app.route("/app_assets/<path:filename>")
+def app_assets(filename):
+    return send_from_directory(APP_ASSETS_DIR, filename)
 
 from shared.utils import _, get_current_language
 
