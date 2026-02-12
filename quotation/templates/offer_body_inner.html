@@ -1,6 +1,13 @@
 {# offer_body_inner.html #}
 
 <table class="info-table" style="width: 100%; margin-bottom: 20px;">
+    {% set items_list = items | list %}
+    {% set ns = namespace(has_discount=false) %}
+    {% for it in items_list %}
+    {% if it.discount_percent and it.discount_percent > 0 %}
+    {% set ns.has_discount = true %}
+    {% endif %}
+    {% endfor %}
     <tr>
         <td style="width: 50%; vertical-align: top;">
             <strong>{{ _('Customer') }}:</strong> {{ offer.client_name }}<br>
@@ -30,11 +37,11 @@
             <th class="col-desc">{{ _('Description') }}</th>
             <th class="col-qty">{{ _('Qty') }}</th>
             <th class="col-unit">{{ _('Unit Price') }}</th>
-            <th class="col-disc">Item disc.</th>
+            {% if ns.has_discount %}<th class="col-disc">Item disc.</th>{% endif %}
             <th class="col-total">{{ _('Total') }}</th>
         </tr>
     </thead>
-    {% for it in items %}
+    {% for it in items_list %}
     <tr>
         <td style="text-align:center;">{{ loop.index }}</td>
 
@@ -66,9 +73,14 @@
             {{ format_amount(it.unit_price) }}
         </td>
 
+        {% if ns.has_discount %}
         <td style="text-align:center;">
-            {% if it.discount_percent %}{{ (it.discount_percent * 100) | round(1) }}%{% else %}0%{% endif %}
+            {% if it.discount_percent %}
+            {% set disc = (it.discount_percent * 100) | round(1) %}
+            {% if disc % 1 == 0 %}{{ disc | int }}%{% else %}{{ disc }}%{% endif %}
+            {% else %}0%{% endif %}
         </td>
+        {% endif %}
 
         <td style="text-align:right;">
             {{ format_amount(it.line_net) }}
