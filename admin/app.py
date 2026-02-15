@@ -2,7 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import os
 import sys
 import time
-import shutil
+import zipfile
+import io
+import pathlib
 
 # Ensure we can import 'shared' from parent dir
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -10,7 +12,7 @@ PARENT_DIR = os.path.dirname(CURRENT_DIR)
 if PARENT_DIR not in sys.path:
     sys.path.append(PARENT_DIR)
 
-from shared.config import STATIC_DIR, DATABASE, APP_ASSETS_DIR
+from shared.config import STATIC_DIR, DATABASE, APP_ASSETS_DIR, IMAGE_DIR
 from shared.db import get_db
 from shared.auth import check_password, set_password, get_password
 
@@ -581,6 +583,131 @@ def restore_db():
     else:
         flash("No file selected.", "error")
 
+    return redirect(url_for("index"))
+
+@app.route("/backup_full")
+def backup_full():
+    if not session.get('admin_authenticated'):
+        return redirect(url_for('login'))
+        
+    # Ensure DB is flushed
+    conn = get_db()
+    conn.commit()
+    conn.close()
+    
+    # Create in-memory zip
+    memory_file = io.BytesIO()
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # 1. Add Database
+        if os.path.exists(DATABASE):
+            zf.write(DATABASE, arcname="pricing.db")
+            
+        # 2. Add Product Images
+        # Walk through IMAGE_DIR and add all files
+        if os.path.exists(IMAGE_DIR):
+            for root, dirs, files in os.walk(IMAGE_DIR):
+                for file in files:
+                    abs_path = os.path.join(root, file)
+                    # rel_path determines the path inside the zip
+                    # We want 'product_images/filename.jpg'
+                    rel_path = os.path.relpath(abs_path, os.path.dirname(IMAGE_DIR))
+                    zf.write(abs_path, arcname=rel_path)
+
+        # 3. Add App Assets (Logos etc)
+        if os.path.exists(APP_ASSETS_DIR):
+             for root, dirs, files in os.walk(APP_ASSETS_DIR):
+                for file in files:
+                    abs_path = os.path.join(root, file)
+                    # We want 'app_assets/filename.jpg'
+                    rel_path = os.path.relpath(abs_path, os.path.dirname(APP_ASSETS_DIR))
+                    zf.write(abs_path, arcname=rel_path)
+                    
+    memory_file.seek(0)
+    date_str = time.strftime("%Y-%m-%d")
+    return send_file(
+        memory_file,
+        as_attachment=True,
+        download_name=f"FULL_SYSTEM_BACKUP_{date_str}.zip",
+        mimetype="application/zip"
+    )
+
+@app.route("/restore_full", methods=["POST"])
+def restore_full():
+    current_admin_pass = request.form.get("current_admin_password")
+    
+    if not check_password("admin", current_admin_pass):
+        flash("Invalid current Admin password.", "error")
+        return redirect(url_for("index"))
+        
+    f = request.files.get("backup_file")
+    if not f or not f.filename:
+        flash("No file selected.", "error")
+        return redirect(url_for("index"))
+        
+    if not f.filename.endswith(".zip"):
+        flash("Invalid file extension. Please upload a .zip file.", "error")
+        return redirect(url_for("index"))
+        
+    try:
+        # Create temp file to extract from
+        # Or Just use ZipFile on the file object if strictly supported, but safer to save to temp
+        # Using io.BytesIO for in-memory handling if file is specialized
+        
+        # Check if zip is valid
+        with zipfile.ZipFile(f) as zf:
+            # Check for pricing.db
+            if "pricing.db" not in zf.namelist():
+                flash("Invalid Backup: pricing.db not found in archive.", "error")
+                return redirect(url_for("index"))
+            
+            # 1. Restore Database
+            # We enforce the target to be DATABASE path
+            with open(DATABASE, 'wb') as db_out:
+                db_out.write(zf.read("pricing.db"))
+                
+            # 2. Restore Images and Assets
+            # We iterate and extract only if path starts with product_images/ or app_assets/
+            for member in zf.namelist():
+                if member.startswith("product_images/") or member.startswith("app_assets/"):
+                    # Prevent path traversal (simple check)
+                    if ".." in member or member.startswith("/"):
+                        continue
+                        
+                    # Target path
+                    # member is like "product_images/123.jpg"
+                    # We extracting to APP_DATA_DIR's parent basically? 
+                    # Wait, IMAGE_DIR is .../app_data/product_images
+                    
+                    # We need to map:
+                    # zip: product_images/foo.jpg -> filesystem: .../app_data/product_images/foo.jpg
+                    # zip: app_assets/logo.jpg -> filesystem: .../app_assets/logo.jpg
+                    
+                    # Determine target directory base
+                    target_abs_path = None
+                    
+                    if member.startswith("product_images/"):
+                        # Remove prefix
+                        rel = member[len("product_images/"):]
+                        if not rel: continue # Directory entry
+                        target_abs_path = os.path.join(IMAGE_DIR, rel)
+                        
+                    elif member.startswith("app_assets/"):
+                        rel = member[len("app_assets/"):]
+                        if not rel: continue
+                        target_abs_path = os.path.join(APP_ASSETS_DIR, rel)
+                        
+                    if target_abs_path:
+                        # Ensure dir exists
+                        os.makedirs(os.path.dirname(target_abs_path), exist_ok=True)
+                        with open(target_abs_path, "wb") as out_f:
+                            out_f.write(zf.read(member))
+                            
+        flash("Full System Restore successful.", "success")
+        
+    except Exception as e:
+        flash(f"Error restoring backup: {e}", "error")
+        print(f"Restore Error: {e}")
+        
     return redirect(url_for("index"))
 
 @app.route("/rounding_rules")

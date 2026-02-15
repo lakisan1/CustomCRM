@@ -301,28 +301,76 @@
         </div>
         <!-- Database Management -->
         <div class="card">
-            <h3>Database Management</h3>
+            <h3>System Backup & Restore</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
-                Backup and Restore the full database (Pricing + Quotation).
+                Manage backups for your data. <strong>Full System</strong> includes images and is recommended.
             </p>
 
+            <div
+                style="background: var(--bg-hover); padding: 15px; border-radius: 8px; margin-bottom: 30px; border: 1px solid var(--accent-primary);">
+                <h4 style="margin-top: 0; color: var(--accent-primary);">Full System (Database + Images)</h4>
+                <div class="split-layout">
+                    <!-- Full Backup -->
+                    <div>
+                        <h5 style="margin-top: 0;">Backup</h5>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">
+                            Download a .zip archive containing <strong>Database</strong>, <strong>Product
+                                Images</strong>, and <strong>Assets</strong>.
+                        </p>
+                        <a href="{{ url_for('backup_full') }}" class="btn btn-primary"
+                            style="text-decoration: none; display: inline-block;">
+                            Download Full System Backup (.zip)
+                        </a>
+                    </div>
+
+                    <!-- Full Restore -->
+                    <div>
+                        <h5 style="margin-top: 0;">Restore</h5>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">
+                            Upload a .zip backup. <strong style="color: var(--accent-warning);">Overwrites ALL data &
+                                images!</strong>
+                        </p>
+
+                        <form action="{{ url_for('restore_full') }}" method="POST" enctype="multipart/form-data">
+                            <div class="file-upload-wrapper" style="margin-bottom: 10px;">
+                                <input type="file" name="backup_file" accept=".zip" required>
+                                <span class="file-upload-text">Select .zip file</span>
+                            </div>
+
+                            <div style="margin-bottom: 10px;">
+                                <label style="color: var(--accent-warning); font-size: 0.85rem;">Admin Password
+                                    Required</label>
+                                <input type="password" name="current_admin_password" required
+                                    placeholder="Enter password">
+                            </div>
+
+                            <button type="submit" class="btn btn-danger"
+                                onclick="return confirm('CRITICAL WARNING: This will overwrite your DATABASE and ALL IMAGES. This cannot be undone. Are you sure?');">
+                                Restore System
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 0; margin-bottom: 15px; opacity: 0.7;">Database Only (No Images)</h4>
             <div class="split-layout">
                 <!-- Backup -->
                 <div>
-                    <h4 style="margin-top: 0;">Backup</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted);">Download a comprehensive .db file
-                        containing all data.</p>
-                    <a href="{{ url_for('backup_db') }}" class="btn btn-primary"
+                    <h5 style="margin-top: 0;">Backup</h5>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">Download only the .db file (faster, but no
+                        images).</p>
+                    <a href="{{ url_for('backup_db') }}" class="btn btn-secondary"
                         style="text-decoration: none; display: inline-block;">
-                        Download Full Backup
+                        Download DB Only
                     </a>
                 </div>
 
                 <!-- Restore -->
                 <div>
-                    <h4 style="margin-top: 0;">Restore</h4>
+                    <h5 style="margin-top: 0;">Restore</h5>
                     <p style="font-size: 0.85rem; color: var(--text-muted);">
-                        Overwrites current data. <strong style="color: var(--accent-warning);">Irreversible!</strong>
+                        Restores only the database file.
                     </p>
 
                     <form action="{{ url_for('restore_db') }}" method="POST" enctype="multipart/form-data">
@@ -338,8 +386,8 @@
                         </div>
 
                         <button type="submit" class="btn btn-danger"
-                            onclick="return confirm('WARNING: This will overwrite ALL data (products, prices, offers). Are you sure?');">
-                            Restore Database
+                            onclick="return confirm('WARNING: This will overwrite the DATABASE. Are you sure?');">
+                            Restore DB Only
                         </button>
                     </form>
                 </div>
