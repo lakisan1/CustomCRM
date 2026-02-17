@@ -130,10 +130,10 @@ def init_rounding_rules_table():
     conn.commit()
     conn.close()
 
-# Initialize DB tables
-init_presets_table()
-init_pdf_templates_table()
-init_rounding_rules_table()
+def init_db():
+    init_presets_table()
+    init_pdf_templates_table()
+    init_rounding_rules_table()
 
 @app.before_request
 def check_auth():

@@ -34,7 +34,7 @@ if command -v apt >/dev/null 2>&1; then
   echo "Updating apt and installing system packages (python, venv, WeasyPrint deps)..."
 
   PKGS="python3 python3-venv python3-pip \
-        libcairo2 libpango-1.0-0 libgdk-pixbuf-2.0-0 \
+        libcairo2 libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0 libgdk-pixbuf-2.0-0 \
         libffi-dev shared-mime-info fonts-dejavu-core"
 
   if [ "$(id -u)" -eq 0 ]; then
