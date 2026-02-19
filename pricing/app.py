@@ -1033,6 +1033,12 @@ def edit_product(product_id):
         """, (name, description, category, brand, photo_path, product_id))
         conn.commit()
         conn.close()
+
+        # Check which button was clicked
+        action = request.form.get("action")
+        if action == "save_add_price":
+            return redirect(url_for("new_price", product_id=product_id))
+
         return redirect(url_for("list_products"))
 
     # GET – load categories and brands for dropdowns
