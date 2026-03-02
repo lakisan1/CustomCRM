@@ -21,6 +21,13 @@ PARENT_DIR = os.path.dirname(CURRENT_DIR)
 if PARENT_DIR not in sys.path:
     sys.path.append(PARENT_DIR)
 
+# Add custom_libs so we can import without root permissions
+CUSTOM_LIBS_DIR = os.path.join(PARENT_DIR, 'custom_libs')
+if CUSTOM_LIBS_DIR not in sys.path:
+    sys.path.append(CUSTOM_LIBS_DIR)
+
+import markdown
+
 from shared.config import BASE_DIR, APP_DATA_DIR, DATABASE, IMAGE_DIR, STATIC_DIR
 from shared.db import get_db
 from shared.auth import check_password
@@ -353,8 +360,8 @@ def save_product_image(image_stream, orig_filename, product_name):
 
     # Check extension
     ext = os.path.splitext(orig_filename)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png"]:
-        raise ValueError("Slika mora biti JPG ili PNG (.jpg, .jpeg, ili .png).")
+    if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
+        raise ValueError("Slika mora biti JPG, PNG ili WEBP (.jpg, .jpeg, .png, ili .webp).")
 
     # Build base name from product_name
     base = (product_name or "").strip().lower()
@@ -425,14 +432,15 @@ def download_image_from_url(url):
         resp.raise_for_status()
         
         content_type = resp.headers.get('Content-Type', '').lower()
-        if 'image/jpeg' not in content_type and 'image/png' not in content_type:
-            raise ValueError("URL ne vodi do JPG ili PNG slike.")
+        if 'image/jpeg' not in content_type and 'image/png' not in content_type and 'image/webp' not in content_type:
+            raise ValueError("URL ne vodi do JPG, PNG ili WEBP slike.")
 
         # Get original filename from URL or default to url_image.jpg
         orig_filename = url.split("/")[-1].split("?")[0] or "url_image.jpg"
-        if not any(orig_filename.lower().endswith(ex) for ex in ['.jpg', '.jpeg', '.png']):
+        if not any(orig_filename.lower().endswith(ex) for ex in ['.jpg', '.jpeg', '.png', '.webp']):
             # force extension based on content-type if missing
             if 'png' in content_type: orig_filename += '.png'
+            elif 'webp' in content_type: orig_filename += '.webp'
             else: orig_filename += '.jpg'
 
         return io.BytesIO(resp.content), orig_filename
@@ -478,6 +486,33 @@ def product_image(filename):
 def _format_date_filter(date_str):
     fmt = get_date_format()
     return format_date(date_str, fmt)
+
+import re
+
+def fix_markdown_lists(text):
+    if not text:
+        return text
+    lines = text.split('\n')
+    fixed_lines = []
+    in_list = False
+    for line in lines:
+        is_list_item = bool(re.match(r'^[ \t]*([*+-]|\d+\.)[ \t]+', line))
+        is_empty = not line.strip()
+        if is_list_item and not in_list and fixed_lines and fixed_lines[-1].strip():
+            fixed_lines.append('')
+        fixed_lines.append(line)
+        if is_empty:
+            in_list = False
+        elif is_list_item:
+            in_list = True
+    return '\n'.join(fixed_lines)
+
+@app.template_filter('md')
+def render_markdown(text):
+    if not text:
+        return ""
+    text = fix_markdown_lists(text)
+    return markdown.markdown(text, extensions=['extra', 'nl2br'])
 
 @app.context_processor
 def inject_helpers():

@@ -71,12 +71,12 @@
         </p>
         <p>
             <label>Opis:<br>
-                <textarea name="description" rows="8"
+                <textarea name="description" id="product_description" rows="8"
                     cols="80">{% if product %}{{ product.description }}{% endif %}</textarea>
             </label>
         </p>
         <p>
-            <label>Slika (JPG,PNG):<br>
+            <label>Slika (JPG,PNG,WEBP):<br>
                 <div class="file-upload-wrapper">
                     {% if product and product.photo_path %}
                     <div style="margin-bottom: 10px;">
@@ -86,7 +86,7 @@
                     </div>
                     {% endif %}
 
-                    <input type="file" name="photo_file" accept="image/jpeg, image/png">
+                    <input type="file" name="photo_file" accept="image/jpeg, image/png, image/webp">
                     <span class="file-upload-text">Klikni ili prevuci sliku ovde</span>
                 </div>
 
@@ -139,6 +139,18 @@
                 }
             });
         }
+
+        const descTextarea = document.getElementById("product_description");
+        if (descTextarea) {
+            new EasyMDE({
+                element: descTextarea,
+                status: false,
+                spellChecker: false,
+                toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "link", "preview"]
+            });
+        }
     });
 </script>
+<link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+<script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
 {% endblock %}
