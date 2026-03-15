@@ -726,7 +726,18 @@
             });
         }
 
-
+        // --- Template confirmation ---
+        const isTemplateCb = document.querySelector('input[name="is_template"]');
+        if (isTemplateCb) {
+            isTemplateCb.addEventListener('click', function(e) {
+                if (this.checked) {
+                    const confirmed = confirm("Da li ste sigurni da želite da sačuvate ovu ponudu kao šablon?");
+                    if (!confirmed) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        }
 
     });
 </script>
