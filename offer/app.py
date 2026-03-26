@@ -1358,7 +1358,7 @@ def duplicate_offer(offer_id):
             total_vat, total_gross,
             payment_terms, delivery_terms, validity_days, notes, napomena, is_template, country
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?);
     """, (
         "", today,
         offer["client_name"], offer["client_address"], offer["client_email"], offer["client_phone"], offer["client_pib"], offer["client_mb"],
